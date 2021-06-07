@@ -97,6 +97,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       )
       self$tuner = tnr("intermbo")
       self$learner = private$.create_learner()
+      self$final_model = assert_logical(final_model)
     },
     #' @description
     #' Trains the AutoML system.
@@ -108,6 +109,8 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         warning("An error occured during training. Fallback learner was used!")
         print(self$learner$learner$errors)
       }
+      if (self$final_model)
+      self$private$.final_model = self$learner$model
     },
     #' @description
     #' Returns a [Prediction][mlr3::Prediction] object for the given data based on the trained model.
@@ -156,9 +159,19 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       } else {
         return(self$learner$model)
       }
+    },
+    model = function() {
+      if (is.null(self$learner$model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else if (self$final_model == FALSE) {
+        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
+      } else {
+        return(self$.final_model)
+      }
     }
   ),
   private = list(
+    .final_model = NULL,
     .create_learner = function() {
       # get preproc pipeline
       if (self$task$task_type == "classif") {
@@ -168,7 +181,10 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       }
 
       # compboost learner
-      pipeline = pipeline %>>% lrn(paste0(self$task$task_type, ".rpart")) # FIXME: needs to be replace with compboost learner when finished
+      pipeline = pipeline %>>%
+        lrn(paste0(self$task$task_type, ".rpart")) # %>>% # FIXME: needs to be replace with compboost learner when finished
+        # po("extract_interactions")
+
 
       # create graphlearner
       graph_learner = GraphLearner$new(pipeline, id = paste0(self$task$task_type, ".autocompboost"))

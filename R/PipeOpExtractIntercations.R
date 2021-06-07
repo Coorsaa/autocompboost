@@ -48,7 +48,7 @@ PipeOpExtractInteractions = R6Class("PipeOpExtractInteractions",
       param_set$values = list(degree = 2L)
       super$initialize(id = id, param_set = param_set, param_vals = param_vals,
         input = data.table(name = "input", train = "Task", predict = "Task"),
-        output = data.table(name = "output", train = "list", predict = "Task"),
+        output = data.table(name = "output", train = "data.table", predict = "NULL"),
         packages = "rpart", tags = "meta"
       )
     }
@@ -74,15 +74,48 @@ PipeOpExtractInteractions = R6Class("PipeOpExtractInteractions",
         }
       )
 
-      self$state$interactions = vars
-
-      list(vars)
+      self$state$interactions = private$.extractInteractionVars(feats = intask$feature_names, vars = vars)
+      return(list(self$state$interactions))
     },
 
     .predict = function(inputs) {
-      return(inputs)
-    }
+      return(NULL)
+    },
 
+    .extractInteractionVars = function(feats, vars) {
+      fs_all = lapply(vars, function(var) {
+        fs = lapply(var, function(v) {
+          vtemp = v["root" != v]
+          fs = sub("<.*|>.*", "", vtemp)
+
+          ## Check if all extracted features are real features and no
+          ## artifacts are extracted:
+          nuisance = lapply(fs, function(f) {
+            if (! f %in% feats)
+              stop("Extracted feature ", f, " not found in given features.")
+          })
+          return(fs)
+        })
+        fs = fs[vapply(fs, length, integer(1L)) > 1]
+        return(unique(fs))
+      })
+
+      fs_str = vapply(do.call(c, fs_all), function(f) paste(sort(f), collapse = "<x>"), character(1L))
+      fst = table(fs_str)
+
+      out = data.table(
+        feat1 = sub("<x>.*", "", names(fst)),
+        feat2 = sub(".*<x>", "", names(fst)),
+        count = as.integer(fst))
+
+      ## Another check if all final feats are included in
+      ## the given features:
+      nuisance = lapply(out[, c("feat1", "feat2")], function(fs) {
+        if (any(! fs %in% feats))
+          stop("Extracted features ", paste(fs[! fs %in% feats], collapse = ", "), " are not included in given features.")
+      })
+      return(out[order(out$count, decreasing = TRUE), ])
+    }
   )
 )
 
