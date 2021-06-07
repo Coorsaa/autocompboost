@@ -110,7 +110,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         print(self$learner$learner$errors)
       }
       if (self$final_model)
-      self$private$.final_model = self$learner$model
+      private$.final_model = self$learner$model
     },
     #' @description
     #' Returns a [Prediction][mlr3::Prediction] object for the given data based on the trained model.
@@ -166,7 +166,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       } else if (self$final_model == FALSE) {
         warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
       } else {
-        return(self$.final_model)
+        return(private$.final_model)
       }
     }
   ),
