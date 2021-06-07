@@ -1,0 +1,204 @@
+#' @title AutoCompBoostBase
+#'
+#' @description
+#' Base class for AutoCompBoost. Has subclasses for Classification and Regression.
+#'
+#' @section Internals:
+#' The AutoCompBoostBase class uses [mlr3pipelines] to create a machine learning pipeline. \cr
+#' This pipeline contains multiple preprocessing steps wrapped in a [GraphLearner][mlr3pipelines::GraphLearner]. \cr
+#' This [GraphLearner][mlr3pipelines::GraphLearner] is wrapped in an [AutoTuner][mlr3tuning::AutoTuner] for Hyperparameter Optimization and proper resampling. \cr
+#' Tuning is performed using Bayesian Optimization.
+#'
+#' @section Construction:
+#' Objects should be created using the [AutoCompBoost][autocompboost::AutoCompBoost] interface function.
+#' ```
+#' model = AutoCompBoost(task, resampling, measure, tuning_budget, tuning_iters, final_model)
+#' ```
+#'
+#' @param task ([`Task`][mlr3::Task]) \cr
+#' Contains the task to be solved. Currently [`TaskClassif`][mlr3::TaskClassif] and [`TaskRegr`][mlr3::TaskRegr] are supported.
+#' @param resampling ([Resampling][mlr3::Resampling]) \cr
+#' Contains the resampling method to be used for hyper-parameter optimization.
+#' Defaults to [ResamplingCV][mlr3::ResamplingCV] with 3 folds.
+#' @param measure ([Measure][mlr3::Measure]) \cr
+#' Contains the performance measure, for which we optimize during training. \cr
+#' Defaults to [Accuracy][mlr3measures::acc] for classification and [RMSE][mlr3measures::rmse] for regression.
+#' @param tuning_time (`integer(1)`) \cr
+#' Termination criterium. Number of seconds for which to run the optimization. Does *not* include training time of the final model. \cr
+#' Default is set to `3600`, i.e. one hour. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @param tuning_iters (`integer(1)`) \cr
+#' Termination criterium. Number of MBO iterations for which to run the optimization. \cr
+#' Default is set to `150` iterations. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @param final_model (`logical(1)`) \cr
+#' Whether or not to return the final model trained on the whole dataset at the end.
+#'
+#' @field task ([`Task`][mlr3::Task]) \cr
+#' Contains the task to be solved.
+#' @field learner ([AutoTuner][mlr3tuning::AutoTuner]) \cr
+#' The ML pipeline at the core of mlr3automl is an [AutoTuner][mlr3tuning::AutoTuner] containing a [GraphLearner][mlr3pipelines::GraphLearner].
+#' @field resampling ([Resampling][mlr3::Resampling]) \cr
+#' Contains the resampling method to be used for hyper-parameter optimization.
+#' @field measure ([Measure][mlr3::Measure]) \cr
+#' Contains the performance measure, for which we optimize during training. \cr
+#' @field tuning_time (`integer(1)`) \cr
+#' Termination criterium. Number of seconds for which to run the optimization. Does *not* include training time of the final model. \cr
+#' Default is set to `60`, i.e. one minuet. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @field tuning_iters (`integer(1)`) \cr
+#' Termination criterium. Number of MBO iterations for which to run the optimization. \cr
+#' Default is set to `150` iterations. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @field final_model (`logical(1)`) \cr
+#' Whether or not to return the final model trained on the whole dataset at the end.
+#' @field tuner ([TunerInterMBO][mlrintermbo::TunerInterMBO]) \cr
+#' Tuning is performed using [TunerInterMBO][mlrintermbo::TunerInterMBO].
+#' @field tuning_terminator ([Terminator][bbotk::Terminator]) \cr
+#' Contains an termination criterion for model tuning. \cr
+#'
+#' @rawNamespace import(mlr3, except = c(lrn, lrns))
+#' @import compboost
+#' @import mlr3misc
+#' @import mlr3oml
+#' @import mlr3pipelines
+#' @import mlrintermbo
+#' @import mlr3tuning
+#' @import paradox
+#' @import checkmate
+#' @import testthat
+#' @importFrom R6 R6Class
+#' @import data.table
+AutoCompBoostBase = R6::R6Class("CompBoostBase",
+  public = list(
+    task = NULL,
+    learner = NULL,
+    resampling = NULL,
+    measure = NULL,
+    tuning_time = NULL,
+    tuning_iters = NULL,
+    final_model = NULL,
+    tuner = NULL,
+    tuning_terminator = NULL,
+    #' @description
+    #' Creates a new instance of this [R6][R6::R6Class] class.
+    #'
+    #' @return [AutoCompBoostBase][autocompboost::AutoCompBoostBase]
+    initialize = function(task, resampling = NULL, measure = NULL,
+      tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) { # FIXME possibly add: , stratify = TRUE, tune_threshold = TRUE) {
+
+      if (!is.null(resampling)) assert_resampling(resampling)
+      if (!is.null(measure)) assert_measure(measure)
+
+      self$task = assert_task(task)
+      self$resampling = resampling %??% rsmp("cv", folds = 3)
+      self$tuning_time = assert_number(tuning_time, lower = 0)
+      self$tuning_iters = assert_number(tuning_iters, lower = 0)
+      self$tuning_terminator = trm("combo", list(
+        trm("run_time", secs = self$tuning_time),
+        trm("evals", n_evals = self$tuning_iters)
+        ), any = TRUE
+      )
+      self$tuner = tnr("intermbo")
+      self$learner = private$.create_learner()
+    },
+    #' @description
+    #' Trains the AutoML system.
+    #' @param row_ids (`integer()`)\cr
+    #' Vector of training indices.
+    train = function(row_ids = NULL) {
+      self$learner$train(self$task, row_ids)
+      if (length(self$learner$learner$errors) > 0) {
+        warning("An error occured during training. Fallback learner was used!")
+        print(self$learner$learner$errors)
+      }
+    },
+    #' @description
+    #' Returns a [Prediction][mlr3::Prediction] object for the given data based on the trained model.
+    #' @param data ([data.frame] | [data.table] | [Task][mlr3::Task]) \cr
+    #' New observations to be predicted. If `NULL`, defaults to the task the model
+    #' was trained on.
+    #' @param row_ids (`integer()`) \cr
+    #' Vector of training indices.
+    #' @return [`PredictionClassif`][mlr3::PredictionClassif] | [`PredictionRegr`][mlr3::PredictionRegr]
+    predict = function(data = NULL, row_ids = NULL) {
+      if (is.null(data)) {
+        return(self$learner$predict(self$task, row_ids))
+      } else {
+        return(self$learner$predict(data, row_ids))
+      }
+    },
+    #' @description
+    #' Performs nested resampling. [`ResamplingHoldout`][mlr3::ResamplingHoldout] is used for the outer resampling.
+    #' @return [`ResampleResult`][mlr3::ResampleResult]
+    resample = function() {
+      outer_resampling = rsmp("holdout")
+      resample_result = mlr3::resample(self$task, self$learner, outer_resampling)
+      self$learner = resample_result$learners[[1]]
+      if (length(self$learner$learner$errors) > 0) {
+        warning("An error occured during training. Fallback learner was used!")
+        print(self$learner$learner$errors)
+      }
+      return(resample_result)
+    },
+    #' @description
+    #' Helper to extract the best hyperparameters from a tuned model.
+    #' @return [`data.table`][data.table::data.table]
+    tuned_params = function() {
+      if (is.null(self$learner$tuning_instance$archive)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else {
+        return(self$learner$tuning_instance$archive$best())
+      }
+    },
+    #' @description
+    #' Returns the model summary
+    #' @return [`data.table`][data.table::data.table]
+    summary = function() {
+      if (is.null(self$learner$model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else {
+        return(self$learner$model)
+      }
+    }
+  ),
+  private = list(
+    .create_learner = function() {
+      # get preproc pipeline
+      if (self$task$task_type == "classif") {
+        pipeline = autocompboost_preproc_pipeline(self$task, max_cardinality = 1000) %>>% po("subsample", stratify = TRUE)
+      } else {
+        pipeline = autocompboost_preproc_pipeline(self$task, max_cardinality = 1000) %>>% po("subsample")
+      }
+
+      # compboost learner
+      pipeline = pipeline %>>% lrn(paste0(self$task$task_type, ".featureless")) # FIXME: needs to be replace with compboost learner when finished
+
+      # create graphlearner
+      graph_learner = GraphLearner$new(pipeline, id = paste0(self$task$task_type, "autocompboost"))
+
+      # fallback learner is featureless learner for classification / regression
+      graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
+      # use callr encapsulation so we are able to kill model training, if it
+      # takes too long
+      graph_learner$encapsulate = c(train = "callr", predict = "callr")
+
+      param_set = autocompboost_default_params()
+
+      tuner = list(self$tuner)
+
+      # FIXME: use hard timeout from mlr3automl here?
+      # if (is.finite(self$tuning_time)) {
+      #  tuner = TunerWrapperHardTimeout$new(
+      #    tuner,
+      #    timeout = self$tuning_time
+      #  )
+      # }
+
+      return(AutoTuner$new(
+        learner = graph_learner,
+        resampling = self$resampling,
+        measure = self$measure,
+        search_space = param_set,
+        terminator = self$tuning_terminator,
+        tuner = tuner
+      ))
+    }
+  )
+)

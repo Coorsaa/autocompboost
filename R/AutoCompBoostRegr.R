@@ -1,0 +1,56 @@
+#' @title AutoCompBoostRegr
+#'
+#' @description
+#' Class for Automated Regression in autocompboost. Subclass of [AutoCompBoostBase][autocompboost::AutoCompBoostBase]
+#'
+#' @section Construction:
+#' Objects should be created using the [AutoCompBoost][autocompboost::AutoCompBoost] interface function.
+#' ```
+#' regression_model = AutoCompBoost(regression_task, resampling, measure,
+#' tuning_time, tuning_iters, final_model)
+#' ```
+#'
+#' @param task ([`Task`][mlr3::Task]) \cr
+#' [`TaskRegr`][mlr3::TaskRegr] to be solved.
+#' @param resampling ([Resampling][mlr3::Resampling]) \cr
+#' Contains the resampling method to be used for hyper-parameter optimization.
+#' Defaults to [ResamplingCV][mlr3::ResamplingCV] with 3 folds.
+#' @param measure ([Measure][mlr3::Measure]) \cr
+#' Contains the performance measure, for which we optimize during training. \cr
+#' Defaults to [Accuracy][mlr3measures::acc] for classification and [RMSE][mlr3measures::rmse] for regression.
+#' @param tuning_time (`integer(1)`) \cr
+#' Termination criterium. Number of seconds for which to run the optimization. Does *not* include training time of the final model. \cr
+#' Default is set to `3600`, i.e. one hour. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @param tuning_iters (`integer(1)`) \cr
+#' Termination criterium. Number of MBO iterations for which to run the optimization. \cr
+#' Default is set to `150` iterations. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @param final_model (`logical(1)`) \cr
+#' Whether or not to return the final model trained on the whole dataset at the end.
+#'
+#' @examples
+#' \dontrun{
+#' library(mlr3)
+#' library(autocompboost)
+#'
+#' regression_model = AutoCompBoost(tsk("boston_housing"))
+#' regression_model$train()
+#' }
+AutoCompBoostRegr = R6Class(
+  "AutoCompBoostRegr",
+  inherit = AutoCompBoostBase,
+  public = list(
+    #' @description
+    #' Creates a new instance of this [R6][R6::R6Class] class.
+    #'
+    #' @return [AutoCompBoostRegr][autocompboost::AutoCompBoostRegr]
+    initialize = function(task, resampling = NULL, measure = NULL,
+      tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) {
+      checkmate::assert_r6(task, "TaskRegr")
+      self$measure = measure %??% mlr_measures$get("regr.rmse")
+
+      super$initialize(task = task, resampling = resampling,
+        measure = self$measure, tuning_time = tuning_time,
+        tuning_iters = tuning_iters, final_model = final_model)
+    }
+  )
+)
