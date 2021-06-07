@@ -181,8 +181,6 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
       param_set = autocompboost_default_params()
 
-      tuner = list(self$tuner)
-
       # FIXME: use hard timeout from mlr3automl here?
       # if (is.finite(self$tuning_time)) {
       #  tuner = TunerWrapperHardTimeout$new(
@@ -197,7 +195,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         measure = self$measure,
         search_space = param_set,
         terminator = self$tuning_terminator,
-        tuner = tuner
+        tuner = self$tuner
       ))
     }
   )
