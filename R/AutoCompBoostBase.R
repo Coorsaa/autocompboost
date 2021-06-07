@@ -168,10 +168,10 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       }
 
       # compboost learner
-      pipeline = pipeline %>>% lrn(paste0(self$task$task_type, ".featureless")) # FIXME: needs to be replace with compboost learner when finished
+      pipeline = pipeline %>>% lrn(paste0(self$task$task_type, ".rpart")) # FIXME: needs to be replace with compboost learner when finished
 
       # create graphlearner
-      graph_learner = GraphLearner$new(pipeline, id = paste0(self$task$task_type, "autocompboost"))
+      graph_learner = GraphLearner$new(pipeline, id = paste0(self$task$task_type, ".autocompboost"))
 
       # fallback learner is featureless learner for classification / regression
       graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
