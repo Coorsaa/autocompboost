@@ -23,6 +23,8 @@
 #' @param measure ([Measure][mlr3::Measure]) \cr
 #' Contains the performance measure, for which we optimize during training. \cr
 #' Defaults to [Accuracy][mlr3measures::acc] for classification and [RMSE][mlr3measures::rmse] for regression.
+#' @param tuning_method (`character(1)`) \cr
+#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"sumohb"`¸ Default is `"mbo"`.
 #' @param tuning_time (`integer(1)`) \cr
 #' Termination criterium. Number of seconds for which to run the optimization. Does *not* include training time of the final model. \cr
 #' Default is set to `3600`, i.e. one hour. Tuning is terminated depending on the first termination criteria fulfilled.
@@ -40,6 +42,8 @@
 #' Contains the resampling method to be used for hyper-parameter optimization.
 #' @field measure ([Measure][mlr3::Measure]) \cr
 #' Contains the performance measure, for which we optimize during training. \cr
+#' @field tuning_method (`character(1)`) \cr
+#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"sumohb"`¸ Default is `"mbo"`.
 #' @field tuning_time (`integer(1)`) \cr
 #' Termination criterium. Number of seconds for which to run the optimization. Does *not* include training time of the final model. \cr
 #' Default is set to `60`, i.e. one minuet. Tuning is terminated depending on the first termination criteria fulfilled.
@@ -71,6 +75,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     learner = NULL,
     resampling = NULL,
     measure = NULL,
+    tuning_method = NULL,
     tuning_time = NULL,
     tuning_iters = NULL,
     final_model = NULL,
@@ -80,7 +85,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Creates a new instance of this [R6][R6::R6Class] class.
     #'
     #' @return [AutoCompBoostBase][autocompboost::AutoCompBoostBase]
-    initialize = function(task, resampling = NULL, measure = NULL,
+    initialize = function(task, resampling = NULL, measure = NULL, tuning_method = "mbo",
       tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) { # FIXME possibly add: , stratify = TRUE, tune_threshold = TRUE) {
 
       if (!is.null(resampling)) assert_resampling(resampling)
@@ -160,6 +165,9 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         return(self$learner$model)
       }
     },
+    #' @description
+    #' Returns the trained model if `final_model` is set to TRUE.
+    #' @return [`Compboost`][compboost::Compboost]
     model = function() {
       if (is.null(self$learner$model)) {
         warning("Model has not been trained. Run the $train() method first.")
@@ -167,6 +175,57 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
       } else {
         return(private$.final_model)
+      }
+    },
+    #' @description
+    #' Returns the selected base learners by the final model.
+    #' @return (`character()`)
+    getSelectedBaselearner = function() {
+      if (is.null(self$learner$model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else if (self$final_model == FALSE) {
+        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
+      } else {
+        return(private$.final_model$getSelectedBaselearner())
+      }
+    },
+    #' @description
+    #' Plot function to plot a single spline.
+    #' @param spline (`character(1L)`) \cr
+    #' Name of spline to plot.
+    #' @return [`ggplot`][ggplot2::ggplot]
+    plotSpline = function(spline = character(1L)) {
+      assert_character(spline, len = 1L)
+      if (is.null(self$learner$model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else if (self$final_model == FALSE) {
+        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
+      } else {
+        return(private$.final_model$getSelectedBaselearner() + ggplot2::theme_bw())
+      }
+    },
+    #' @description
+    #' Plot function to plot the feature importance.
+    #' @return [`ggplot`][ggplot2::ggplot]
+    plotFeatureImportance = function() {
+      if (is.null(self$learner$model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else if (self$final_model == FALSE) {
+        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
+      } else {
+        return(private$.final_model$plotFeatureImportance() + ggplot2::theme_bw())
+      }
+    },
+    #' @description
+    #' Plot function to plot the learner traces.
+    #' @return [`ggplot`][ggplot2::ggplot]
+    plotBlearnerTraces = function() {
+      if (is.null(self$learner$model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else if (self$final_model == FALSE) {
+        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
+      } else {
+        return(private$.final_model$plotBlearnerTraces() + ggplot2::theme_bw())
       }
     }
   ),
@@ -185,6 +244,11 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         lrn(paste0(self$task$task_type, ".rpart")) # %>>% # FIXME: needs to be replace with compboost learner when finished
         # po("extract_interactions")
 
+      # pipelne for multiclass
+      # can be removed when compoboost supports multiclass classification
+      if (task$task_type == "classif" && length(task$class_names) > 2) {
+        pipeline = pipeline_ovr(pipeline)
+      }
 
       # create graphlearner
       graph_learner = GraphLearner$new(pipeline, id = paste0(self$task$task_type, ".autocompboost"))

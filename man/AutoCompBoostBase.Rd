@@ -15,6 +15,9 @@ Defaults to \link[mlr3:mlr_resamplings_cv]{ResamplingCV} with 3 folds.}
 Contains the performance measure, for which we optimize during training. \cr
 Defaults to \link[mlr3measures:acc]{Accuracy} for classification and \link[mlr3measures:rmse]{RMSE} for regression.}
 
+\item{tuning_method}{(\code{character(1)}) \cr
+Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"sumohb"}¸ Default is \code{"mbo"}.}
+
 \item{tuning_time}{(\code{integer(1)}) \cr
 Termination criterium. Number of seconds for which to run the optimization. Does \emph{not} include training time of the final model. \cr
 Default is set to \code{3600}, i.e. one hour. Tuning is terminated depending on the first termination criteria fulfilled.}
@@ -32,6 +35,9 @@ was trained on.}
 
 \item{row_ids}{(\code{integer()}) \cr
 Vector of training indices.}
+
+\item{spline}{(\code{character(1L)}) \cr
+Name of spline to plot.}
 }
 \value{
 \link[=AutoCompBoostBase]{AutoCompBoostBase}
@@ -43,6 +49,16 @@ Vector of training indices.}
 \code{\link[data.table:data.table]{data.table}}
 
 \code{\link[data.table:data.table]{data.table}}
+
+\code{\link[compboost:Compboost]{Compboost}}
+
+(\code{character()})
+
+\code{\link[ggplot2:ggplot]{ggplot}}
+
+\code{\link[ggplot2:ggplot]{ggplot}}
+
+\code{\link[ggplot2:ggplot]{ggplot}}
 }
 \description{
 Base class for AutoCompBoost. Has subclasses for Classification and Regression.
@@ -58,6 +74,16 @@ Performs nested resampling. \code{\link[mlr3:mlr_resamplings_holdout]{Resampling
 Helper to extract the best hyperparameters from a tuned model.
 
 Returns the model summary
+
+Returns the trained model if \code{final_model} is set to TRUE.
+
+Returns the selected base learners by the final model.
+
+Plot function to plot a single spline.
+
+Plot function to plot the feature importance.
+
+Plot function to plot the learner traces.
 }
 \section{Fields}{
 
@@ -73,6 +99,9 @@ Contains the resampling method to be used for hyper-parameter optimization.}
 
 \item{\code{measure}}{(\link[mlr3:Measure]{Measure}) \cr
 Contains the performance measure, for which we optimize during training. \cr}
+
+\item{\code{tuning_method}}{(\code{character(1)}) \cr
+Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"sumohb"}¸ Default is \code{"mbo"}.}
 
 \item{\code{tuning_time}}{(\code{integer(1)}) \cr
 Termination criterium. Number of seconds for which to run the optimization. Does \emph{not} include training time of the final model. \cr

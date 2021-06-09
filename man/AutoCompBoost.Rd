@@ -8,6 +8,7 @@ AutoCompBoost(
   task,
   resampling = NULL,
   measure = NULL,
+  tuning_method = "mbo",
   tuning_time = 60L,
   tuning_iters = 150L,
   final_model = TRUE
@@ -24,6 +25,9 @@ Defaults to \link[mlr3:mlr_resamplings_cv]{ResamplingCV} with 3 folds.}
 \item{measure}{(\link[mlr3:Measure]{Measure}) \cr
 Contains the performance measure, for which we optimize during training. \cr
 Defaults to \link[mlr3measures:acc]{Accuracy} for classification and \link[mlr3measures:rmse]{RMSE} for regression.}
+
+\item{tuning_method}{(\code{character(1)}) \cr
+Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"sumohb"}¸ Default is \code{"mbo"}.}
 
 \item{tuning_time}{(\code{integer(1)}) \cr
 Termination criterium. Number of seconds for which to run the optimization. Does \emph{not} include training time of the final model. \cr

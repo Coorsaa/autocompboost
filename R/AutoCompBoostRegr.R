@@ -18,6 +18,8 @@
 #' @param measure ([Measure][mlr3::Measure]) \cr
 #' Contains the performance measure, for which we optimize during training. \cr
 #' Defaults to [Accuracy][mlr3measures::acc] for classification and [RMSE][mlr3measures::rmse] for regression.
+#' @param tuning_method (`character(1)`) \cr
+#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"sumohb"`¸ Default is `"mbo"`.
 #' @param tuning_time (`integer(1)`) \cr
 #' Termination criterium. Number of seconds for which to run the optimization. Does *not* include training time of the final model. \cr
 #' Default is set to `3600`, i.e. one hour. Tuning is terminated depending on the first termination criteria fulfilled.
@@ -43,7 +45,7 @@ AutoCompBoostRegr = R6Class(
     #' Creates a new instance of this [R6][R6::R6Class] class.
     #'
     #' @return [AutoCompBoostRegr][autocompboost::AutoCompBoostRegr]
-    initialize = function(task, resampling = NULL, measure = NULL,
+    initialize = function(task, resampling = NULL, measure = NULL, tuning_method = "mbo",
       tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) {
       checkmate::assert_r6(task, "TaskRegr")
       self$measure = measure %??% mlr_measures$get("regr.rmse")
