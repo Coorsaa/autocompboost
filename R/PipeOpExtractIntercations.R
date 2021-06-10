@@ -138,6 +138,7 @@ PipeOpExtractInteractions = R6Class("PipeOpExtractInteractions",
       ## Another check if all final feats are included in
       ## the given features:
       if (degree == 2) {
+        out = na.omit(out)
         nuisance = lapply(out[, -ncol(out), with = FALSE], function(fs) {
           if (any(! fs %in% feats))
             stop("Extracted features ", paste(fs[! fs %in% feats], collapse = ", "), " are not included in given features.")
