@@ -109,25 +109,26 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       } else if (tuning_method == "hyperband") {
         self$tuner = tnr("hyperband", eta = 3L)
       } else if (tuning_method == "smash") {
-        imputepl = po("imputeoor", offset = 1, multiplier = 10) %>>% po("fixfactors") %>>% po("imputesample")
-        learnerlist = list(
-          ranger = GraphLearner$new(imputepl %>>% mlr3::lrn("regr.ranger", fallback = mlr3::lrn("regr.featureless"), encapsulate = c(train = "evaluate", predict = "evaluate"))),
-          knn = GraphLearner$new(imputepl %>>% mlr3::lrn("regr.kknn", fallback = mlr3::lrn("regr.featureless"), encapsulate = c(train = "evaluate", predict = "evaluate")))
-        )
-        self$tuner = tnr("smash",
-          budget_log_step = log(7),
-          survival_fraction = 0.45,
-          filter_algorithm = "progressive",
-          surrogate_learner = learnerlist$knn,
-          filter_with_max_budget = TRUE,
-          filter_factor_first = 50,  # keine ahnung wie wichtig das ist
-          filter_factor_first.end = 1000,
-          filter_factor_last = 10,
-          filter_factor_last.end = 25,
-          random_interleave_fraction = 0.5,
-          random_interleave_fraction.end = 0.8,
-          random_interleave_random = TRUE  # scheint relativ egal zu sein
-        )
+        # imputepl = po("imputeoor", offset = 1, multiplier = 10) %>>% po("fixfactors") %>>% po("imputesample")
+        # learnerlist = list(
+        #   ranger = GraphLearner$new(imputepl %>>% mlr3::lrn("regr.ranger", fallback = mlr3::lrn("regr.featureless"), encapsulate = c(train = "evaluate", predict = "evaluate"))),
+        #   knn = GraphLearner$new(imputepl %>>% mlr3::lrn("regr.kknn", fallback = mlr3::lrn("regr.featureless"), encapsulate = c(train = "evaluate", predict = "evaluate")))
+        # )
+        # self$tuner = tnr("smash",
+        #   budget_log_step = log(7),
+        #   survival_fraction = 0.45,
+        #   filter_algorithm = "progressive",
+        #   surrogate_learner = learnerlist$knn,
+        #   filter_with_max_budget = TRUE,
+        #   filter_factor_first = 50,  # keine ahnung wie wichtig das ist
+        #   filter_factor_first.end = 1000,
+        #   filter_factor_last = 10,
+        #   filter_factor_last.end = 25,
+        #   random_interleave_fraction = 0.5,
+        #   random_interleave_fraction.end = 0.8,
+        #   random_interleave_random = TRUE  # scheint relativ egal zu sein
+        # )
+        stopf("This tuning method is currently not supported") # FIXME
       }
       self$learner = private$.create_learner()
       self$final_model = assert_logical(final_model)
