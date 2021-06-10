@@ -246,7 +246,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
       # pipelne for multiclass
       # can be removed when compoboost supports multiclass classification
-      if (task$task_type == "classif" && length(task$class_names) > 2) {
+      if (self$task$task_type == "classif" && length(self$task$class_names) > 2) {
         pipeline = pipeline_ovr(pipeline)
       }
 
