@@ -4,7 +4,11 @@
 \alias{autocompboost_default_params}
 \title{autocompboost_default_params}
 \usage{
-autocompboost_default_params()
+autocompboost_default_params(task_type)
+}
+\arguments{
+\item{task_type}{(\code{character(1L)}) \cr
+Task type. \code{"classif"} for classification or \code{"regr"} for regression.}
 }
 \value{
 \code{\link[paradox:ParamSet]{ParamSet}}

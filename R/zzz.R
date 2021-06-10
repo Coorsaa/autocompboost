@@ -33,3 +33,5 @@ register_mlr3pipelines = function() {
 
   library.dynam.unload("autocompboost", libpath)
 } # nocov end
+
+leanify_package()

@@ -48,10 +48,12 @@ AutoCompBoostClassif = R6Class(
     initialize = function(task, resampling = NULL, measure = NULL, tuning_method = "mbo",
       tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) {
       checkmate::assert_r6(task, "TaskClassif")
+      assert_number(tuning_iters)
+      assert_number(tuning_time)
       self$measure = measure %??% mlr_measures$get("classif.acc")
 
       super$initialize(task = task, resampling = resampling,
-        measure = self$measure, tuning_time = tuning_time,
+        measure = self$measure, tuning_method = tuning_method, tuning_time = tuning_time,
         tuning_iters = tuning_iters, final_model = final_model)
     }
   )

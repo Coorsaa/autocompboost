@@ -43,11 +43,13 @@ AutoCompBoost = function(task, resampling = NULL, measure = NULL, tuning_method 
     if (length(target_is_factor) == 1 && target_is_factor) {
       task$col_roles$stratum = task$target_names
     }
-    return(AutoCompBoostClassif$new(task, resampling, measure,
-      tuning_time, tuning_iters, final_model))
+    return(AutoCompBoostClassif$new(task = task, resampling = resampling,
+      measure = measure, tuning_method = tuning_method, tuning_time = tuning_time, tuning_iters = tuning_iters,
+      final_model = final_model))
   } else if (task$task_type == "regr") {
-    return(AutoCompBoostRegr$new(task, resampling, measure,
-      tuning_time, tuning_iters, final_model))
+    return(AutoCompBoostRegr$new(task = task, resampling = resampling,
+      measure = measure, tuning_method = tuning_method, tuning_time = tuning_time, tuning_iters = tuning_iters,
+      final_model = final_model))
   } else {
     stop("autocompboost only supports classification and regression tasks for now")
   }

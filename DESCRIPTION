@@ -28,13 +28,13 @@ Imports:
     mlr3oml,
     mlrintermbo,
     compboost,
-    rpart,
     paradox,
     R6,
-    testthat,
+    testthat
 Suggests:
     knitr,
-    rmarkdown
+    lgr,
+    rpart,
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: no

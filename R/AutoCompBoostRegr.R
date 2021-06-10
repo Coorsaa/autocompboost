@@ -51,7 +51,7 @@ AutoCompBoostRegr = R6Class(
       self$measure = measure %??% mlr_measures$get("regr.rmse")
 
       super$initialize(task = task, resampling = resampling,
-        measure = self$measure, tuning_time = tuning_time,
+        measure = self$measure, tuning_method = tuning_method, tuning_time = tuning_time,
         tuning_iters = tuning_iters, final_model = final_model)
     }
   )

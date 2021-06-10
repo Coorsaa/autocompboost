@@ -115,7 +115,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         print(self$learner$learner$errors)
       }
       if (self$final_model)
-      private$.final_model = self$learner$model
+        private$.final_model = self$learner$learner$model[[paste0(self$task$task_type, ".rpart")]]$model # FIXME: change to compboost when implemented
     },
     #' @description
     #' Returns a [Prediction][mlr3::Prediction] object for the given data based on the trained model.
@@ -259,7 +259,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       # takes too long
       graph_learner$encapsulate = c(train = "callr", predict = "callr")
 
-      param_set = autocompboost_default_params()
+      param_set = autocompboost_default_params(self$task$task_type)
 
       # FIXME: use hard timeout from mlr3automl here?
       # if (is.finite(self$tuning_time)) {
