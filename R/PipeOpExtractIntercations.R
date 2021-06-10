@@ -43,7 +43,7 @@ PipeOpExtractInteractions = R6Class("PipeOpExtractInteractions",
     initialize = function(id = "extract_interactions", param_vals = list(),
       packages = character(0), task_type = "Task", tags = NULL, feature_types = mlr_reflections$task_feature_types) {
       param_set = ps(
-        degree = p_int(lower = 2L, upper = Inf, tags = c("train", "predict"))
+        degree = p_int(lower = 2L, upper = 3L, tags = c("train", "predict"))
       )
       param_set$values = list(degree = 2L)
       super$initialize(id = id, param_set = param_set, param_vals = param_vals,
@@ -53,6 +53,7 @@ PipeOpExtractInteractions = R6Class("PipeOpExtractInteractions",
       )
     }
   ),
+
   private = list(
     .train = function(inputs) {
       intask = inputs[[1]]$clone(deep = TRUE)
@@ -60,21 +61,16 @@ PipeOpExtractInteractions = R6Class("PipeOpExtractInteractions",
 
       # define learner
       if (intask$task_type == "classif")
-        learner = lrn("classif.rpart", maxdepth = degree)
+        learner = lrn("classif.ranger", max.depth = degree)
       if (intask$task_type == "regr")
-        learner = lrn("regr.rpart", maxdepth = degree)
+        learner = lrn("regr.ranger", max.depth = degree)
 
       # train forest
-      rr = resample(intask, learner, rsmp("cv"), store_models = TRUE)
+      learner$train(intask)
+      mod = learner$model
 
-      # extract chosen features from models
-      vars = lapply(rr$learners, function(l) {
-          nodes = which(l$model$frame$var == "<leaf>")
-          paths = rpart::path.rpart(l$model, nodes)
-        }
-      )
+      self$state$interactions = private$.extractInteractions(mod, degree)
 
-      self$state$interactions = private$.extractInteractionVars(feats = intask$feature_names, vars = vars)
       return(list(self$state$interactions))
     },
 
@@ -82,38 +78,71 @@ PipeOpExtractInteractions = R6Class("PipeOpExtractInteractions",
       return(NULL)
     },
 
-    .extractInteractionVars = function(feats, vars) {
-      fs_all = lapply(vars, function(var) {
-        fs = lapply(var, function(v) {
-          vtemp = v["root" != v]
-          fs = sub("<.*|>.*", "", vtemp)
-
-          ## Check if all extracted features are real features and no
-          ## artifacts are extracted:
-          nuisance = lapply(fs, function(f) {
-            if (! f %in% feats)
-              stop("Extracted feature ", f, " not found in given features.")
-          })
-          return(fs)
-        })
-        fs = fs[vapply(fs, length, integer(1L)) > 1]
-        return(unique(fs))
+    .extractInteractions = function(mod, degree) {
+      fs = lapply(1:mod$num.trees, function(x) {
+        na.omit(treeInfo(mod, x)[, 1:6])
       })
+
+      if (degree == 2) {
+        fs_all = lapply(fs, function(x) {
+          list(
+            unique(c(
+              x[1, "splitvarName"],
+              x[x$nodeID == x[1, "leftChild"], "splitvarName"]
+            )),
+            unique(c(
+              x[1, "splitvarName"],
+              x[x$nodeID == x[1, "rightChild"], "splitvarName"]
+            ))
+          )
+        })
+      } else if (degree == 3) {
+        fs_all = lapply(fs, function(x) {
+          list(
+            unique(c(
+              x[1, "splitvarName"],
+              x[x$nodeID == x[1, "leftChild"], "splitvarName"],
+              x[x$nodeID == x[x$nodeID == x[1, "leftChild"], "leftChild"], "splitvarName"]
+            )),
+            unique(c(
+              x[1, "splitvarName"],
+              x[x$nodeID == x[1, "leftChild"], "splitvarName"],
+              x[x$nodeID == x[x$nodeID == x[1, "leftChild"], "rightChild"], "splitvarName"]
+            )),
+            unique(c(
+              x[1, "splitvarName"],
+              x[x$nodeID == x[1, "rightChild"], "splitvarName"],
+              x[x$nodeID == x[x$nodeID == x[1, "rightChild"], "leftChild"], "splitvarName"]
+            )),
+            unique(c(
+              x[1, "splitvarName"],
+              x[x$nodeID == x[1, "rightChild"], "splitvarName"],
+              x[x$nodeID == x[x$nodeID == x[1, "rightChild"], "rightChild"], "splitvarName"]
+            ))
+          )
+        })
+      }
+
+      fs_all = unique(fs_all[vapply(fs_all, length, integer(1L)) > 1])
 
       fs_str = vapply(do.call(c, fs_all), function(f) paste(sort(f), collapse = "<x>"), character(1L))
       fst = table(fs_str)
 
       out = data.table(
-        feat1 = sub("<x>.*", "", names(fst)),
-        feat2 = sub(".*<x>", "", names(fst)),
+        feat1 = sapply(names(fst), function(s) {strsplit(s, "<x>")[[1]][1]}),
+        feat2 = sapply(names(fst), function(s) {strsplit(s, "<x>")[[1]][2]}),
+        feat3 = sapply(names(fst), function(s) {strsplit(s, "<x>")[[1]][3]}),
         count = as.integer(fst))
 
+      out = out[, !apply(out, 2 , function(j) all(is.na(j))), with = FALSE]
       ## Another check if all final feats are included in
       ## the given features:
-      nuisance = lapply(out[, c("feat1", "feat2")], function(fs) {
-        if (any(! fs %in% feats))
-          stop("Extracted features ", paste(fs[! fs %in% feats], collapse = ", "), " are not included in given features.")
-      })
+      if (degree == 2) {
+        nuisance = lapply(out[, -ncol(out), with = FALSE], function(fs) {
+          if (any(! fs %in% feats))
+            stop("Extracted features ", paste(fs[! fs %in% feats], collapse = ", "), " are not included in given features.")
+        })
+      }
       return(out[order(out$count, decreasing = TRUE), ])
     }
   )

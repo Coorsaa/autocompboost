@@ -22,20 +22,26 @@ Imports:
     data.table,
     future,
     mlr3,
+    mlr3learners,
     mlr3pipelines,
     mlr3tuning,
+    mlr3hyperband,
     mlr3misc,
     mlr3oml,
     mlrintermbo,
     compboost,
     paradox,
+    miesmuschel,
     R6,
     testthat
 Suggests:
     knitr,
     lgr,
     ggplot2,
-    rpart,
+    rpart
+Remotes:
+    mlr-org/miesmuschel@multiobjective_hb
+    mlr-org/paradox#323
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: no

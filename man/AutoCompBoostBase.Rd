@@ -16,7 +16,7 @@ Contains the performance measure, for which we optimize during training. \cr
 Defaults to \link[mlr3measures:acc]{Accuracy} for classification and \link[mlr3measures:rmse]{RMSE} for regression.}
 
 \item{tuning_method}{(\code{character(1)}) \cr
-Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"sumohb"}¸ Default is \code{"mbo"}.}
+Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"smash"}¸ Default is \code{"mbo"}.}
 
 \item{tuning_time}{(\code{integer(1)}) \cr
 Termination criterium. Number of seconds for which to run the optimization. Does \emph{not} include training time of the final model. \cr
@@ -101,7 +101,7 @@ Contains the resampling method to be used for hyper-parameter optimization.}
 Contains the performance measure, for which we optimize during training. \cr}
 
 \item{\code{tuning_method}}{(\code{character(1)}) \cr
-Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"sumohb"}¸ Default is \code{"mbo"}.}
+Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"smash"}¸ Default is \code{"mbo"}.}
 
 \item{\code{tuning_time}}{(\code{integer(1)}) \cr
 Termination criterium. Number of seconds for which to run the optimization. Does \emph{not} include training time of the final model. \cr

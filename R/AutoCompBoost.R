@@ -12,7 +12,7 @@
 #' Contains the performance measure, for which we optimize during training. \cr
 #' Defaults to [Accuracy][mlr3measures::acc] for classification and [RMSE][mlr3measures::rmse] for regression.
 #' @param tuning_method (`character(1)`) \cr
-#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"sumohb"`¸ Default is `"mbo"`.
+#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"smash"`¸ Default is `"mbo"`.
 #' @param tuning_time (`integer(1)`) \cr
 #' Termination criterium. Number of seconds for which to run the optimization. Does *not* include training time of the final model. \cr
 #' Default is set to `60`, i.e. one minute. Tuning is terminated depending on the first termination criteria fulfilled.
