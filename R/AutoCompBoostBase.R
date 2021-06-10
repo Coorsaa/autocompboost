@@ -128,10 +128,9 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
           random_interleave_fraction.end = 0.8,
           random_interleave_random = TRUE  # scheint relativ egal zu sein
         )
-
+      }
       self$learner = private$.create_learner()
       self$final_model = assert_logical(final_model)
-      }
     },
     #' @description
     #' Trains the AutoML system.
