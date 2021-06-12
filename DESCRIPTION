@@ -38,7 +38,8 @@ Suggests:
     knitr,
     lgr,
     ggplot2,
-    rpart
+    rpart,
+    ranger
 Remotes:
     mlr-org/miesmuschel@multiobjective_hb
     mlr-org/paradox#323

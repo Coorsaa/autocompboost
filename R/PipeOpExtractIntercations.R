@@ -80,7 +80,7 @@ PipeOpExtractInteractions = R6Class("PipeOpExtractInteractions",
 
     .extractInteractions = function(mod, degree) {
       fs = lapply(1:mod$num.trees, function(x) {
-        na.omit(treeInfo(mod, x)[, 1:6])
+        na.omit(ranger::treeInfo(mod, x)[, 1:6])
       })
 
       if (degree == 2) {
@@ -138,17 +138,13 @@ PipeOpExtractInteractions = R6Class("PipeOpExtractInteractions",
       ## Another check if all final feats are included in
       ## the given features:
       if (degree == 2) {
-        out = na.omit(out)
-        nuisance = lapply(out[, -ncol(out), with = FALSE], function(fs) {
-          if (any(! fs %in% feats))
-            stop("Extracted features ", paste(fs[! fs %in% feats], collapse = ", "), " are not included in given features.")
-        })
+        #out = na.omit(out)
+        #nuisance = lapply(out[, -ncol(out), with = FALSE], function(fs) {
+          #if (any(! fs %in% intask$feature_names))
+            #stop("Extracted features ", paste(fs[! fs %in% feats], collapse = ", "), " are not included in given features.")
+        #})
       }
       return(out[order(out$count, decreasing = TRUE), ])
     }
   )
 )
-
-
-
-
