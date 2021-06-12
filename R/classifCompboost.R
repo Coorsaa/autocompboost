@@ -153,7 +153,7 @@ mlr_learners$add("classif.compboost", LearnerClassifCompboost)
 
 
 #devtools::load_all()
-##remotes::install_github("schalkdaniel/compboost@tensor")
+##remotes::install_github("schalkdaniel/compboost@tensors")
 
 #lr1 = lrn("classif.compboost", n_knots = 10L, stop_patience = 8L, show_output = TRUE, predict_type = "prob")
 #lr1$train(tsk("sonar"))
