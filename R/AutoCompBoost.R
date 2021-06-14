@@ -37,8 +37,7 @@
 AutoCompBoost = function(task, resampling = NULL, measure = NULL, tuning_method = "mbo",
   tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) {
   if (task$task_type == "classif") {
-    # stratify target variable so that every target lable appears
-    # in all folds while resampling
+    # stratify target variable so that every target lable appears in all folds while resampling
     target_is_factor = task$col_info[task$col_info$id == task$target_names, ]$type == "factor"
     if (length(target_is_factor) == 1 && target_is_factor) {
       task$col_roles$stratum = task$target_names

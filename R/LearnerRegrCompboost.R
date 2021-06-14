@@ -1,10 +1,24 @@
-LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
-  inherit = LearnerClassif,
+#' @title CompBoost Regression Learner
+#'
+#' @name mlr_learners_regr.compboost
+#'
+#' @description
+#' Componentwise boosting
+#' Calls [compboost::compboost()] from package \CRANpkg{compboost}.
+#'
+#' @template section_dictionary_learner
+#' @templateVar id regr.compboost
+#'
+#' @export
+#' @template seealso_learner
+#' @template example
+LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
+  inherit = LearnerRegr,
   public = list(
 
     #' @description
-    #' Create a `LearnerClassifCompboost` object.
-    initialize = function () {
+    #' Create a `LearnerRegrCompboost` object.
+    initialize = function() {
       ps = ParamSet$new(
         params = list(
           ParamDbl$new(id = "df", default = 4, lower = 1),
@@ -32,11 +46,11 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-6)
 
       super$initialize(
+        id = "regr.compboost",
         packages = "compboost",
         feature_types = c("numeric", "factor", "integer", "character"),
-        predict_types = c("response", "prob"),
-        param_set = ps,
-        properties = c("twoclass")
+        predict_types = "response",
+        param_set = ps
       )
     }
   ),
@@ -64,7 +78,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       optimizer = compboost::OptimizerCoordinateDescent$new(self$param_set$values$ncores)
 
       ### Define compboost model for univariate features:
-      loss = compboost::LossBinomial$new()
+      loss = compboost::LossQuadratic$new()
       cboost_uni = Compboost$new(data = task$data(), target = task$target_names, loss = loss,
         learning_rate = self$param_set$values$learning_rate_univariat, optimizer = optimizer, test_idx = test_idx,
         stop_args = stop_args, use_early_stopping = self$param_set$values$use_early_stopping)
@@ -142,11 +156,11 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           ### Define optimizer and loss with predictions as offset to continue training instead of
           ### start from all over again:
           optimizer_int  = compboost::OptimizerCoordinateDescent$new(self$param_set$values$ncores)
-          loss_int_inbag = compboost::LossBinomial$new(pred_inbag, TRUE)
+          loss_int_inbag = compboost::LossQuadratic$new(pred_inbag, TRUE)
           if (self$param_set$values$use_early_stopping) {
-            loss_int_oob   = compboost::LossBinomial$new(pred_oob, TRUE)
+            loss_int_oob   = compboost::LossQuadratic$new(pred_oob, TRUE)
           } else {
-            loss_int_oob = compboost::LossBinomial$new()
+            loss_int_oob = compboost::LossQuadratic$new()
           }
 
           ### Define interaction model based on tensor splines:
@@ -246,97 +260,45 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       lin_pred = self$model$univariat$predict(newdata)
       if (! is.null(self$model$interactions))
         lin_pred = lin_pred + self$model$interactions$predict(newdata)
-      if (! is.null(self$model$rf)) {
-        df_new = task$data()
-        df_new$residuals = 0
-        tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
-        lin_pred = lin_pred + self$model$rf$lrn$predict(tsk_new)$response
-      }
 
-      probs = 1 / (1 + exp(-lin_pred))
-
-      pos = self$model$univariat$response$getPositiveClass()
-      neg = setdiff(names(self$model$univariat$response$getClassTable()), pos)
-      pmat = matrix(c(probs, 1 - probs), ncol = 2L, nrow = length(probs))
-      colnames(pmat) = c(pos, neg)
-      if (self$predict_type == "prob") {
-        list(prob = pmat)
-      }
-      if (self$predict_type == "response") {
-        list(response = ifelse(probs > self$model$univariat$response$getThreshold(), pos, neg))
-      } else {
-        list(prob = pmat)
-      }
+      return(list(response = lin_pred))
     }
   )
 )
-mlr_learners$add("classif.compboost", LearnerClassifCompboost)
+
 
 if (FALSE) {
 
 devtools::load_all()
 
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(mlr3extralearners)
-#devtools::install_github("zeehio/facetscales")
-
-cboost_pars = list("classif.compboost",
-  predict_type = "prob", df = 6, show_output = TRUE, top_interaction = 0.02,
-  learning_rate_univariat = 0.01, learning_rate_interactions = 0.05,
+lr1 = lrn("regr.compboost",
+  df = 4, show_output = TRUE, top_interaction = 0.02,
+  learning_rate_univariat = 0.01, learning_rate_interactions = 0.01,
   train_time_total = 5,
   iters_max_univariat = 50000L, iters_max_interactions = 50000L,
   n_knots_univariat = 10, n_knots_interactions = 10,
-  use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-6)
+  use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-7)
 
-#lr = do.call(lrn, c(cboost_pars, id = "cboost"))
-#lr$train(tsk("sonar"))
-#lr$predict(tsk("sonar"))
-#microbenchmark::microbenchmark(
-  #compboost = compboost::boostSplines(tsk("sonar")$data(), target = "Class", loss = LossBinomial$new(), iterations = 1000, bin_root = 2L,
-    #n_knots = 10L, cache_type = "cholesky", df = 4L),
-  #times = 10L
-#)
+task = tsk("boston_housing")
+lr1$train(task)
+pred = lr1$predict(task)
+pred$score(msrs(c("regr.mse", "regr.mae")))
 
-lr_wrf = do.call(lrn, c(cboost_pars, add_rf = TRUE, id = "cboost with rf"))
-#lr_wrf$train(tsk("sonar"))
-#lr_wrf$predict(tsk("sonar"))
+lr1$model$univariat$plotBlearnerTraces(n_legend = 20L)
+lr1$model$interactions$plotBlearnerTraces()
 
-lr_uni = do.call(lrn, c(cboost_pars, just_univariat = TRUE, id = "cboost univariat"))
-
-options("mlr3.debug" = TRUE)
-
-task = tsk("spam")
-grid2 = benchmark_grid(task,
-  list(
-    lr_uni, lr, lr_wrf,
-    lrn("classif.ranger", predict_type = "prob", id = "ranger"),
-    lrn("classif.log_reg", predict_type = "prob", id = "logistic regression"),
-    lrn("classif.gamboost", predict_type = "prob", mstop = 5000, id = "gamboost"),
-    lrn("classif.cv_glmnet", predict_type = "prob", id = "glmnet")
-  ), rsmp("cv", folds = 10L))
-bm = benchmark(grid2)
-scr = bm$score(msrs(c("classif.auc", "time_train")))
+inbag1 = lr1$model$univariat$getInbagRisk()
+inbag2 = lr1$model$interactions$getInbagRisk()
+oob1   = lr1$model$univariat$getLoggerData()$oob_risk
+oob2   = lr1$model$interactions$getLoggerData()$oob_risk
+cutoff = lr1$model$univariat$getCurrentIteration()
 
 
-scales_y = list(
-  `time_train` = scale_y_continuous(trans = "log2"),
-  `classif.auc` = scale_y_continuous()
-)
-gg = scr %>% select(learner_id, classif.auc, time_train) %>%
-  pivot_longer(cols = c("classif.auc", "time_train"), names_to = "Measure", values_to = "value") %>%
-  ggplot(aes(x = learner_id, y = value, color = learner_id, fill = learner_id)) +
-    geom_boxplot(alpha = 0.2) +
-    ggsci::scale_color_uchicago() +
-    ggsci::scale_fill_uchicago() +
-    #scale_color_brewer(palette = "Set1") +
-    #scale_fill_brewer(palette = "Set1") +
-    labs(color = "Learner", fill = "Learner") +
-    xlab("") +
-    ylab("") +
-    scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
-    facetscales::facet_grid_sc(vars(Measure), scales = list(y = scales_y))
-
-ggsave(gg, filename = paste0(here::here(), "/temp/fig-test-bmr.pdf"))
+yrg = c(min(inbag2, oob2), max(inbag1, oob1))
+plot(c(inbag1, inbag2), type = "l", col = "red", ylim = yrg)
+lines(c(oob1, oob2), col = "blue")
+abline(v = cutoff, lty = 2, col = "dark grey")
+legend("topright", lty = 1, col = c("red", "blue"), legend = c("Train risk", "Validation risk"))
+text(x = cutoff + 0.01 * (length(c(inbag1, inbag2))), y = max(c(inbag1, oob1)) - 0.05 * (yrg[2] - yrg[1]),
+  labels = "Switch from univariate\nto interaction model", adj = c(0, 0))
 }

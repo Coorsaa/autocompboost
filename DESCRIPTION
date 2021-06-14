@@ -50,12 +50,4 @@ NeedsCompilation: no
 Roxygen: list(markdown = TRUE, r6 = FALSE)
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr
-Collate:
-    'AutoCompBoost.R'
-    'AutoCompBoostBase.R'
-    'AutoCompBoostClassif.R'
-    'AutoCompBoostRegr.R'
-    'PipeOpExtractIntercations.R'
-    'param_set.R'
-    'preproc_pipeline.R'
-    'zzz.R'
+

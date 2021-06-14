@@ -81,6 +81,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     final_model = NULL,
     tuner = NULL,
     tuning_terminator = NULL,
+
     #' @description
     #' Creates a new instance of this [R6][R6::R6Class] class.
     #'
@@ -133,6 +134,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       self$learner = private$.create_learner()
       self$final_model = assert_logical(final_model)
     },
+
     #' @description
     #' Trains the AutoML system.
     #' @param row_ids (`integer()`)\cr
@@ -144,8 +146,9 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         print(self$learner$learner$errors)
       }
       if (self$final_model)
-        private$.final_model = self$learner$learner$model[[paste0(self$task$task_type, ".rpart")]]$model # FIXME: change to compboost when implemented
+        private$.final_model = self$learner$learner$model[[paste0(self$task$task_type, ".compboost")]]$model # FIXME: change to compboost when implemented
     },
+
     #' @description
     #' Returns a [Prediction][mlr3::Prediction] object for the given data based on the trained model.
     #' @param data ([data.frame] | [data.table] | [Task][mlr3::Task]) \cr
@@ -161,6 +164,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         return(self$learner$predict(data, row_ids))
       }
     },
+
     #' @description
     #' Performs nested resampling. [`ResamplingHoldout`][mlr3::ResamplingHoldout] is used for the outer resampling.
     #' @return [`ResampleResult`][mlr3::ResampleResult]
@@ -174,6 +178,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       }
       return(resample_result)
     },
+
     #' @description
     #' Helper to extract the best hyperparameters from a tuned model.
     #' @return [`data.table`][data.table::data.table]
@@ -184,6 +189,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         return(self$learner$tuning_instance$archive$best())
       }
     },
+
     #' @description
     #' Returns the model summary
     #' @return [`data.table`][data.table::data.table]
@@ -194,6 +200,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         return(self$learner$model)
       }
     },
+
     #' @description
     #' Returns the trained model if `final_model` is set to TRUE.
     #' @return [`Compboost`][compboost::Compboost]
@@ -206,6 +213,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         return(private$.final_model)
       }
     },
+
     #' @description
     #' Returns the selected base learners by the final model.
     #' @return (`character()`)
@@ -218,6 +226,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         return(private$.final_model$getSelectedBaselearner())
       }
     },
+
     #' @description
     #' Plot function to plot a single spline.
     #' @param spline (`character(1L)`) \cr
@@ -233,6 +242,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         return(private$.final_model$getSelectedBaselearner() + ggplot2::theme_bw())
       }
     },
+
     #' @description
     #' Plot function to plot the feature importance.
     #' @return [`ggplot`][ggplot2::ggplot]
@@ -245,6 +255,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         return(private$.final_model$plotFeatureImportance() + ggplot2::theme_bw())
       }
     },
+
     #' @description
     #' Plot function to plot the learner traces.
     #' @return [`ggplot`][ggplot2::ggplot]
@@ -258,6 +269,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       }
     }
   ),
+
   private = list(
     .final_model = NULL,
     .create_learner = function() {
@@ -270,8 +282,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
       # compboost learner
       pipeline = pipeline %>>%
-        lrn(paste0(self$task$task_type, ".rpart")) # %>>% # FIXME: needs to be replace with compboost learner when finished
-        # po("extract_interactions")
+        lrn(paste0(self$task$task_type, ".compboost"), predict_type = "prob", show_output = TRUE)
 
       # pipelne for multiclass
       # can be removed when compoboost supports multiclass classification
@@ -283,7 +294,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       graph_learner = GraphLearner$new(pipeline, id = paste0(self$task$task_type, ".autocompboost"))
 
       # fallback learner is featureless learner for classification / regression
-      graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
+      # graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
       # use callr encapsulation so we are able to kill model training, if it
       # takes too long
       graph_learner$encapsulate = c(train = "callr", predict = "callr")
