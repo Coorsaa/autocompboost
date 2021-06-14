@@ -1,3 +1,17 @@
+#' @title CompBoost Classification Learner
+#'
+#' @name mlr_learners_classif.compboost
+#'
+#' @description
+#' Componentwise boosting
+#' Calls [compboost::compboost()] from package \CRANpkg{compboost}.
+#'
+#' @template section_dictionary_learner
+#' @templateVar id classif.compboost
+#'
+#' @export
+#' @template seealso_learner
+#' @template example
 LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
   inherit = LearnerClassif,
   public = list(
@@ -257,8 +271,6 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
     }
   )
 )
-mlr_learners$add("classif.compboost", LearnerClassifCompboost)
-
 
 #devtools::load_all()
 #remotes::install_github("schalkdaniel/compboost@tensors")

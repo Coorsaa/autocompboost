@@ -1,3 +1,17 @@
+#' @title CompBoost Regression Learner
+#'
+#' @name mlr_learners_regr.compboost
+#'
+#' @description
+#' Componentwise boosting
+#' Calls [compboost::compboost()] from package \CRANpkg{compboost}.
+#'
+#' @template section_dictionary_learner
+#' @templateVar id regr.compboost
+#'
+#' @export
+#' @template seealso_learner
+#' @template example
 LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
   inherit = LearnerRegr,
   public = list(
@@ -175,7 +189,6 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
     }
   )
 )
-mlr_learners$add("regr.compboost", LearnerRegrCompboost)
 
 
 #devtools::load_all()
