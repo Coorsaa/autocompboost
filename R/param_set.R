@@ -9,15 +9,17 @@ autocompboost_default_params = function(task_type) {
   if (task_type == "classif") {
     return(
       ps(
-        classif.rpart.cp = p_dbl(lower = 0, upper = 1),
-        classif.rpart.maxdepth = p_int(lower = 1, upper = 30, tags = "budget")
+        classif.learning_rate_univariat = p_dbl(lower = 1e-4, upper = 0.5),
+        classif.learning_rate_interactions = p_dbl(lower = 1e-4, upper = 0.5),
+        classif.top_interactions = p_dbl(lower = 0.01, upper = 0.2)
       )
     )
   } else if (task_type == "regr") {
     return(
       ps(
-        regr.rpart.cp = p_dbl(lower = 0, upper = 1),
-        regr.rpart.maxdepth = p_int(lower = 1, upper = 30, tags = "budget")
+        classif.learning_rate_univariat = p_dbl(lower = 1e-4, upper = 0.5),
+        classif.learning_rate_interactions = p_dbl(lower = 1e-4, upper = 0.5),
+        classif.top_interactions = p_dbl(lower = 0.01, upper = 0.2)
       )
     )
   }

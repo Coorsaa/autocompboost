@@ -4,7 +4,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
     #' @description
     #' Create a `LearnerClassifCompboost` object.
-    initialize = function() {
+    initialize = function () {
       ps = ParamSet$new(
         params = list(
           ParamDbl$new(id = "df", default = 4, lower = 1),
@@ -19,21 +19,19 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           ParamDbl$new(id = "stop_epsylon_for_break", default = 0.00001, lower = 0, upper = 1),
           ParamDbl$new(id = "stop_patience", default = 10L, lower = 1L),
           ParamDbl$new(id = "val_fraction", default = 0.33, lower = 0, upper = 1),
-          ParamDbl$new(id = "ntop_interaction", default = 10, lower = 1),
+          ParamDbl$new(id = "top_interaction", default = 0.02, lower = 0.01, upper = 1),
           ParamLgl$new(id = "use_early_stopping", default = TRUE),
           ParamLgl$new(id = "show_output", default = FALSE),
-          ParamInt$new(id = "max_minutes_univariat", default = 0, lower = 0),
-          ParamInt$new(id = "max_minutes_interaction", default = 0, lower = 0),
           ParamLgl$new(id = "just_univariat", default = FALSE),
           ParamLgl$new(id = "add_rf", default = FALSE),
-          #### TODO! Track runtime from beginning of the learner and always use time_total - time
-          ####       as new time logger input! This ENSURES that the model is not fitted longer than
-          ####       specified!
           ParamInt$new(id = "train_time_total", default = 0, lower = 0)
-        )
-      )
+        ))
+      ps$values = list(df = 6, show_output = FALSE, top_interaction = 0.02, learning_rate_univariat = 0.01,
+        learning_rate_interactions = 0.05, train_time_total = 10, iters_max_univariat = 50000L,
+        iters_max_interactions = 50000L, n_knots_univariat = 15, n_knots_interactions = 8,
+        use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-6)
+
       super$initialize(
-        id = "classif.compboost",
         packages = "compboost",
         feature_types = c("numeric", "factor", "integer", "character"),
         predict_types = c("response", "prob"),
@@ -45,6 +43,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
   private = list(
     .train = function(task) {
+      time0 = proc.time()
+
       ### Set params with default and user defined ones:
       pdefaults = self$param_set$default
       pars      = self$param_set$values
@@ -70,8 +70,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         stop_args = stop_args, use_early_stopping = self$param_set$values$use_early_stopping)
 
       ### If a maximum time is given, the logger is used for stopping. Otherwise the time is just logged:
-      if (self$param_set$values$max_minutes_univariat > 0) {
-        cboost_uni$addLogger(LoggerTime, TRUE, "minutes", self$param_set$values$max_minutes_univariat, "minutes")
+      if (self$param_set$values$train_time_total > 0) {
+        cboost_uni$addLogger(LoggerTime, TRUE, "minutes", self$param_set$values$train_time_total, "minutes")
       } else {
         cboost_uni$addLogger(LoggerTime, FALSE, "minutes", 0, "minutes")
       }
@@ -96,7 +96,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       ### optimal stopping iter:
       ld = cboost_uni$getLoggerData()
       was_early_stopped = (max(ld[["_iterations"]]) < self$param_set$values[["iters_max_univariat"]]) &&
-        (max(ld[["minutes"]]) < self$param_set$values[["max_minutes_univariat"]])
+        (max(ld[["minutes"]]) < self$param_set$values[["train_time_total"]])
       if (was_early_stopped && (cboost_uni$getCurrentIteration() > self$param_set$values$stop_patience + 2))
         cboost_uni$train(cboost_uni$getCurrentIteration() - self$param_set$values$stop_patience - 1)
 
@@ -133,9 +133,11 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         ### Extract interactions based on random forest:
         extracted_interactions = na.omit(po("extract_interactions", degree = 2)$train(list(tsk_new))$output)
 
-        if (nrow(extracted_interactions) > 0) {
+        ninteractions = nrow(extracted_interactions)
+        ntopinteractions = ceiling(ninteractions * self$param_set$values$top_interaction)
+        if (ntopinteractions > 0) {
           ### Just use the top interactions (defined by the user, too much interactions makes the model too slow):
-          top_interactions = seq_len(self$param_set$values$ntop_interaction)
+          top_interactions = seq_len(ntopinteractions)
 
           ### Define optimizer and loss with predictions as offset to continue training instead of
           ### start from all over again:
@@ -152,75 +154,86 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
             learning_rate = self$param_set$values$learning_rate_interactions, optimizer = optimizer_int, test_idx = test_idx,
             stop_args = c(stop_args, loss_oob = loss_int_oob), use_early_stopping = self$param_set$values$use_early_stopping)
 
-          ### If a maximum time is given, the logger is used for stopping. Otherwise the time is just logged:
-          if (self$param_set$values$max_minutes_interaction > 0) {
-            cboost_int$addLogger(LoggerTime, TRUE, "minutes", self$param_set$values$max_minutes_interaction, "minutes")
-          } else {
-            cboost_int$addLogger(LoggerTime, FALSE, "minutes", 0, "minutes")
-          }
-
+          #browser()
           ### Add tensor splines. (FIXME: Atm just for numeric-numeric interactions):
           nuisance = lapply(top_interactions, function(i) {
              #Check if numeric! Interactions between ridge and spline needs to be tested first!
             e = try({
-              cboost_int$addTensor(extracted_interactions$feat1[i], extracted_interactions$feat2[i], "tensor",
+              cboost_int$addTensor(extracted_interactions$feat1[i], extracted_interactions$feat2[i],
                 n_knots = self$param_set$values$n_knots_interactions, df = self$param_set$values$df)
             }, silent = TRUE)
           })
 
-          ### Train interaction model:
-          if (self$param_set$values$show_output) {
-            cboost_int$train(self$param_set$values$iters_max_interactions)
+          ### Check if train is used as logging. If so calculate remaining budget:
+          if (self$param_set$values$train_time_total > 0) {
+            tint = proc.time() - time0
           } else {
-            nuisance = capture.output(cboost_int$train(self$param_set$values$iters_max_interactions))
+            tint = Inf
           }
 
-          ld = cboost_int$getLoggerData()
-          was_early_stopped = (max(ld[["_iterations"]]) < self$param_set$values[["iters_max_interactions"]]) &&
-            (max(ld[["minutes"]]) < self$param_set$values[["max_minutes_interaction"]])
-          if (was_early_stopped && (cboost_int$getCurrentIteration() > (self$param_set$values$stop_patience + 2)))
-            cboost_int$train(cboost_int$getCurrentIteration() - self$param_set$values$stop_patience - 1)
-
-          ### Post check if model was really trained on the same data::
-          ch1 = all.equal(cboost_uni$data, cboost_int$data)
-          if (!ch1) stop("Check failed! Data for both models is not equal!")
-
-          if (self$param_set$values$use_early_stopping) {
-            ch2 = all.equal(cboost_uni$response_oob$getResponse(), cboost_int$response_oob$getResponse())
-            if (!ch2) stop("Check failed! Response for both models is not equal!")
-          }
-          out[["interactions"]] = cboost_int
-
-          if (self$param_set$values$add_rf) {
-            # Access predictions:
-            pred_inbag = cboost_int$response$getPrediction()
-            if (self$param_set$values$use_early_stopping) {
-              pred_oob   = cboost_int$response_oob$getPrediction()
-            }
-            # Calculate pseudo residuals from the fitted univariate model:
-            res1 = as.vector(loss$calculatePseudoResiduals(cboost_int$response$getResponse(), pred_inbag))
-            if (self$param_set$values$use_early_stopping) {
-              res2 = as.vector(loss$calculatePseudoResiduals(cboost_int$response_oob$getResponse(), pred_oob))
-            }
-            # Reconstruct the order of the original data to correctly add pseudo residuals:
-            idx_re = order(c(train_idx, test_idx))
-            res = c(res1, res2)[idx_re]
-
-            # Define new task with 'residuals' as target
-            df_new$residuals = res
-            tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
-
-            lrn = lrn("regr.ranger")
-            lrn$train(tsk_new, row_ids = train_idx)
-
-            if (self$param_set$values$use_early_stopping) {
-              rf_pred = lrn$predict(tsk_new, row_ids = test_idx)
-              oob_loss_final = mean(log(1 + exp(-2 * cboost_int$response_oob$getResponse() * pred_oob + cbind(rf_pred$response))))
+          if (self$param_set$values$train_time_total > (tint[3] / 60)) {
+            if (self$param_set$values$train_time_total > 0) {
+              tintuse = ceiling(tint[3] / 60)
+              cboost_int$addLogger(LoggerTime, TRUE, "minutes", self$param_set$values$train_time_total - tintuse, "minutes")
             } else {
-              rf_pred = NULL
-              oob_loss_final = NULL
+              cboost_int$addLogger(LoggerTime, FALSE, "minutes", 0, "minutes")
+              tintuse = Inf
             }
-            out[["rf"]] = list(lrn = lrn, oob_pred = rf_pred, oob_loss_final = oob_loss_final)
+
+            ### Train interaction model:
+            if (self$param_set$values$show_output) {
+              cboost_int$train(self$param_set$values$iters_max_interactions)
+            } else {
+              nuisance = capture.output(cboost_int$train(self$param_set$values$iters_max_interactions))
+            }
+
+            ld = cboost_int$getLoggerData()
+            was_early_stopped = (max(ld[["_iterations"]]) < self$param_set$values[["iters_max_interactions"]]) &&
+              (max(ld[["minutes"]]) < tintuse)
+            if (was_early_stopped && (cboost_int$getCurrentIteration() > (self$param_set$values$stop_patience + 2)))
+              cboost_int$train(cboost_int$getCurrentIteration() - self$param_set$values$stop_patience - 1)
+
+            ### Post check if model was really trained on the same data::
+            ch1 = all.equal(cboost_uni$data, cboost_int$data)
+            if (!ch1) stop("Check failed! Data for both models is not equal!")
+
+            if (self$param_set$values$use_early_stopping) {
+              ch2 = all.equal(cboost_uni$response_oob$getResponse(), cboost_int$response_oob$getResponse())
+              if (!ch2) stop("Check failed! Response for both models is not equal!")
+            }
+            out[["interactions"]] = cboost_int
+
+            if (self$param_set$values$add_rf) {
+              # Access predictions:
+              pred_inbag = cboost_int$response$getPrediction()
+              if (self$param_set$values$use_early_stopping) {
+                pred_oob   = cboost_int$response_oob$getPrediction()
+              }
+              # Calculate pseudo residuals from the fitted univariate model:
+              res1 = as.vector(loss$calculatePseudoResiduals(cboost_int$response$getResponse(), pred_inbag))
+              if (self$param_set$values$use_early_stopping) {
+                res2 = as.vector(loss$calculatePseudoResiduals(cboost_int$response_oob$getResponse(), pred_oob))
+              }
+              # Reconstruct the order of the original data to correctly add pseudo residuals:
+              idx_re = order(c(train_idx, test_idx))
+              res = c(res1, res2)[idx_re]
+
+              # Define new task with 'residuals' as target
+              df_new$residuals = res
+              tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
+
+              lrn = lrn("regr.ranger")
+              lrn$train(tsk_new, row_ids = train_idx)
+
+              if (self$param_set$values$use_early_stopping) {
+                rf_pred = lrn$predict(tsk_new, row_ids = test_idx)
+                oob_loss_final = mean(log(1 + exp(-2 * cboost_int$response_oob$getResponse() * pred_oob + cbind(rf_pred$response))))
+              } else {
+                rf_pred = NULL
+                oob_loss_final = NULL
+              }
+              out[["rf"]] = list(lrn = lrn, oob_pred = rf_pred, oob_loss_final = oob_loss_final)
+            }
           }
         }
       }
@@ -259,61 +272,6 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 )
 mlr_learners$add("classif.compboost", LearnerClassifCompboost)
 
-
-#devtools::load_all()
-#remotes::install_github("schalkdaniel/compboost@tensors")
-#devtools::load_all("~/repos/compboost")
-
-#lr1 = lrn("classif.compboost", stop_patience = 10L, stop_epsylon_for_break = 1e-5, learning_rate_univariat = 0.1,
-  #learning_rate_interactions = 0.1, max_minutes_univariat = 2L, max_minutes_interaction = 2L, show_output = TRUE,
-  #predict_type = "prob", ntop_interaction = 10L, iters_max_univariat = 20000L,  iters_max_interactions = 20000L)
-#lr1$train(tsk("sonar"))
-
-
-#pred = lr1$predict(tsk("sonar"))
-#pred$confusion
-#pred$score(msr("classif.auc"))
-
-#lr1$model$univariat$plotBlearnerTraces(n_legend = 20L)
-#lr1$model$interactions$plotBlearnerTraces()
-
-#inbag1 = lr1$model$univariat$getInbagRisk()
-#inbag2 = lr1$model$interactions$getInbagRisk()
-#oob1   = lr1$model$univariat$getLoggerData()$oob_risk
-#oob2   = lr1$model$interactions$getLoggerData()$oob_risk
-#cutoff = lr1$model$univariat$getCurrentIteration()
-
-#yrg = c(min(inbag2, oob2, lr1$model$rf[[3]]), max(inbag1, oob1))
-#plot(c(inbag1, inbag2), type = "l", col = "red", ylim = yrg)
-#lines(c(oob1, oob2), col = "blue")
-#abline(v = cutoff, lty = 2, col = "dark grey")
-#legend("topright", lty = 1, col = c("red", "blue"), legend = c("Train risk", "Validation risk"))
-#text(x = cutoff + 0.01 * (length(c(inbag1, inbag2))), y = max(c(inbag1, oob1)) - 0.05 * (yrg[2] - yrg[1]),
-  #labels = "Switch from univariate\nto interaction model", adj = c(0, 0))
-#abline(h = lr1$model$rf[[3]], col = "dark green")
-
-
-
-
-#options("mlr3.debug" = TRUE)
-
-#lr1 = lrn("classif.compboost", stop_patience = 10L, stop_epsylon_for_break = 1e-5, learning_rate_univariat = 0.1,
-  #learning_rate_interactions = 0.1, max_minutes_univariat = 2L, max_minutes_interaction = 2L, show_output = TRUE,
-  #predict_type = "prob", ntop_interaction = 10L, iters_max_univariat = 20000L,  iters_max_interactions = 20000L)
-#lr1 = lrn("classif.compboost", learning_rate_univariat = 0.1, learning_rate_interactions = 0.1, max_minutes_univariat = 2L,
-  #max_minutes_interaction = 2L, show_output = TRUE, predict_type = "prob", ntop_interaction = 10L, iters_max_univariat = 1000L,
-  #iters_max_interactions = 400L, df = 10, use_early_stopping = FALSE)
-
-#lr1$train(tsk("sonar"))
-
-#lrn_rg = lrn("classif.ranger", predict_type = "prob")
-#res = rsmp("cv", folds = 5L)
-
-#grid = benchmark_grid(tsk("sonar"), list(lr1, lrn_rg), res)
-#bm = benchmark(grid)
-#bm$aggregate(msr("classif.auc"))
-
-
 if (FALSE) {
 
 devtools::load_all()
@@ -325,15 +283,14 @@ library(mlr3extralearners)
 #devtools::install_github("zeehio/facetscales")
 
 cboost_pars = list("classif.compboost",
-  predict_type = "prob", df = 6, show_output = TRUE, ntop_interaction = 10L,
-  learning_rate_univariat = 0.1, learning_rate_interactions = 0.1,
-  max_minutes_univariat = 10L, max_minutes_interaction = 10L,
-  #iters_max_univariat = 5000L, iters_max_interactions = 1000L,
-  iters_max_univariat = 20000L, iters_max_interactions = 10000L,
+  predict_type = "prob", df = 6, show_output = TRUE, top_interaction = 0.02,
+  learning_rate_univariat = 0.01, learning_rate_interactions = 0.05,
+  train_time_total = 5,
+  iters_max_univariat = 50000L, iters_max_interactions = 50000L,
   n_knots_univariat = 10, n_knots_interactions = 10,
-  use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-7)
+  use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-6)
 
-lr = do.call(lrn, c(cboost_pars, id = "cboost"))
+#lr = do.call(lrn, c(cboost_pars, id = "cboost"))
 #lr$train(tsk("sonar"))
 #lr$predict(tsk("sonar"))
 #microbenchmark::microbenchmark(
@@ -362,6 +319,7 @@ grid2 = benchmark_grid(task,
 bm = benchmark(grid2)
 scr = bm$score(msrs(c("classif.auc", "time_train")))
 
+
 scales_y = list(
   `time_train` = scale_y_continuous(trans = "log2"),
   `classif.auc` = scale_y_continuous()
@@ -377,6 +335,7 @@ gg = scr %>% select(learner_id, classif.auc, time_train) %>%
     labs(color = "Learner", fill = "Learner") +
     xlab("") +
     ylab("") +
+    scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
     facetscales::facet_grid_sc(vars(Measure), scales = list(y = scales_y))
 
 ggsave(gg, filename = paste0(here::here(), "/temp/fig-test-bmr.pdf"))
