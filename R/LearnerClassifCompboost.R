@@ -46,6 +46,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-6)
 
       super$initialize(
+        id = "classif.compboost",
         packages = "compboost",
         feature_types = c("numeric", "factor", "integer", "character"),
         predict_types = c("response", "prob"),
@@ -295,6 +296,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(mlr3extralearners)
+#library(mlr3oml)
 #devtools::install_github("zeehio/facetscales")
 
 cboost_pars = list("classif.compboost",
@@ -305,7 +307,7 @@ cboost_pars = list("classif.compboost",
   n_knots_univariat = 10, n_knots_interactions = 10,
   use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-6)
 
-#lr = do.call(lrn, c(cboost_pars, id = "cboost"))
+lr = do.call(lrn, c(cboost_pars, id = "cboost"))
 #lr$train(tsk("sonar"))
 #lr$predict(tsk("sonar"))
 #microbenchmark::microbenchmark(
@@ -322,7 +324,8 @@ lr_uni = do.call(lrn, c(cboost_pars, just_univariat = TRUE, id = "cboost univari
 
 options("mlr3.debug" = TRUE)
 
-task = tsk("spam")
+#task = tsk("spam")
+task = tsk("oml", task_id = 359994)
 grid2 = benchmark_grid(task,
   list(
     lr_uni, lr, lr_wrf,
