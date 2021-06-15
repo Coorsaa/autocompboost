@@ -17,9 +17,9 @@ autocompboost_default_params = function(task_type) {
   } else if (task_type == "regr") {
     return(
       ps(
-        classif.learning_rate_univariat = p_dbl(lower = 1e-4, upper = 0.5),
-        classif.learning_rate_interactions = p_dbl(lower = 1e-4, upper = 0.5),
-        classif.top_interactions = p_dbl(lower = 0.01, upper = 0.2)
+        regr.learning_rate_univariat = p_dbl(lower = 1e-4, upper = 0.5),
+        regr.learning_rate_interactions = p_dbl(lower = 1e-4, upper = 0.5),
+        regr.top_interactions = p_dbl(lower = 0.01, upper = 0.2)
       )
     )
   }

@@ -46,6 +46,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-6)
 
       super$initialize(
+        id = "classif.compboost",
         packages = "compboost",
         feature_types = c("numeric", "factor", "integer", "character"),
         predict_types = c("response", "prob"),
