@@ -34,9 +34,10 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           ParamDbl$new(id = "stop_patience", default = 10L, lower = 1L),
           ParamDbl$new(id = "val_fraction", default = 0.33, lower = 0, upper = 1),
           ParamDbl$new(id = "top_interactions", default = 0.02, lower = 0.01, upper = 1),
+          ParamDbl$new(id = "n_min_interactions", default = 10L, lower = 0),
           ParamLgl$new(id = "use_early_stopping", default = TRUE),
           ParamLgl$new(id = "show_output", default = FALSE),
-          ParamLgl$new(id = "just_univariat", default = FALSE),
+          ParamLgl$new(id = "just_univariate", default = FALSE),
           ParamLgl$new(id = "add_rf", default = FALSE),
           ParamInt$new(id = "train_time_total", default = 0, lower = 0)
         ))
@@ -150,6 +151,9 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
         ninteractions = nrow(extracted_interactions)
         ntopinteractions = ceiling(ninteractions * self$param_set$values$top_interactions)
+        if (ntopinteractions < self$param_set$values$n_min_interactions)
+          ntopinteractions = min(self$param_set$values$n_min_interactions, ninteractions)
+
         if (ntopinteractions > 0) {
           ### Just use the top interactions (defined by the user, too much interactions makes the model too slow):
           top_interactionss = seq_len(ntopinteractions)
