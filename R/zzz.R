@@ -11,7 +11,7 @@ register_mlr3 = function () {
   x = utils::getFromNamespace("mlr_learners", ns = "mlr3")
 
   x$add("classif.compboost", LearnerClassifCompboost)
-  x$add("ragr.compboost", LearnerRegrCompboost)
+  x$add("regr.compboost", LearnerRegrCompboost)
 }
 
 register_mlr3pipelines = function() {

@@ -25,7 +25,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           ParamDbl$new(id = "df_cat", default = 4, lower = 1),
           ParamInt$new(id = "iters_max_univariat", default = 10000L, lower = 1L),
           ParamInt$new(id = "iters_max_interactions", default = 10000L, lower = 1L),
-          ParamDbl$new(id = "learning_rate_univariat", default = 0.01, lower = 0),
+          ParamDbl$new(id = "learning_rate_univariate", default = 0.01, lower = 0),
           ParamDbl$new(id = "learning_rate_interactions", default = 0.1, lower = 0),
           ParamDbl$new(id = "n_knots_univariat", default = 20L, lower = 4),
           ParamDbl$new(id = "n_knots_interactions", default = 10L, lower = 4),
@@ -33,14 +33,14 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           ParamDbl$new(id = "stop_epsylon_for_break", default = 0.00001, lower = 0, upper = 1),
           ParamDbl$new(id = "stop_patience", default = 10L, lower = 1L),
           ParamDbl$new(id = "val_fraction", default = 0.33, lower = 0, upper = 1),
-          ParamDbl$new(id = "top_interaction", default = 0.02, lower = 0.01, upper = 1),
+          ParamDbl$new(id = "top_interactions", default = 0.02, lower = 0.01, upper = 1),
           ParamLgl$new(id = "use_early_stopping", default = TRUE),
           ParamLgl$new(id = "show_output", default = FALSE),
           ParamLgl$new(id = "just_univariat", default = FALSE),
           ParamLgl$new(id = "add_rf", default = FALSE),
           ParamInt$new(id = "train_time_total", default = 0, lower = 0)
         ))
-      ps$values = list(df = 6, show_output = FALSE, top_interaction = 0.02, learning_rate_univariat = 0.01,
+      ps$values = list(df = 6, show_output = FALSE, top_interactions = 0.02, learning_rate_univariate = 0.01,
         learning_rate_interactions = 0.05, train_time_total = 10, iters_max_univariat = 50000L,
         iters_max_interactions = 50000L, n_knots_univariat = 15, n_knots_interactions = 8,
         use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-6)
@@ -81,7 +81,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       ### Define compboost model for univariate features:
       loss = compboost::LossBinomial$new()
       cboost_uni = Compboost$new(data = task$data(), target = task$target_names, loss = loss,
-        learning_rate = self$param_set$values$learning_rate_univariat, optimizer = optimizer, test_idx = test_idx,
+        learning_rate = self$param_set$values$learning_rate_univariate, optimizer = optimizer, test_idx = test_idx,
         stop_args = stop_args, use_early_stopping = self$param_set$values$use_early_stopping)
 
       ### If a maximum time is given, the logger is used for stopping. Otherwise the time is just logged:
@@ -149,10 +149,10 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         extracted_interactions = na.omit(po("extract_interactions", degree = 2)$train(list(tsk_new))$output)
 
         ninteractions = nrow(extracted_interactions)
-        ntopinteractions = ceiling(ninteractions * self$param_set$values$top_interaction)
+        ntopinteractions = ceiling(ninteractions * self$param_set$values$top_interactions)
         if (ntopinteractions > 0) {
           ### Just use the top interactions (defined by the user, too much interactions makes the model too slow):
-          top_interactions = seq_len(ntopinteractions)
+          top_interactionss = seq_len(ntopinteractions)
 
           ### Define optimizer and loss with predictions as offset to continue training instead of
           ### start from all over again:
@@ -171,7 +171,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
           #browser()
           ### Add tensor splines. (FIXME: Atm just for numeric-numeric interactions):
-          nuisance = lapply(top_interactions, function(i) {
+          nuisance = lapply(top_interactionss, function(i) {
              #Check if numeric! Interactions between ridge and spline needs to be tested first!
             e = try({
               cboost_int$addTensor(extracted_interactions$feat1[i], extracted_interactions$feat2[i],
@@ -299,8 +299,8 @@ library(mlr3extralearners)
 #devtools::install_github("zeehio/facetscales")
 
 cboost_pars = list("classif.compboost",
-  predict_type = "prob", df = 6, show_output = TRUE, top_interaction = 0.02,
-  learning_rate_univariat = 0.01, learning_rate_interactions = 0.05,
+  predict_type = "prob", df = 6, show_output = TRUE, top_interactions = 0.02,
+  learning_rate_univariate = 0.01, learning_rate_interactions = 0.05,
   train_time_total = 5,
   iters_max_univariat = 50000L, iters_max_interactions = 50000L,
   n_knots_univariat = 10, n_knots_interactions = 10,
