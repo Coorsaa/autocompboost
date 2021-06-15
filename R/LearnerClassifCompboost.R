@@ -4,7 +4,7 @@
 #'
 #' @description
 #' Componentwise boosting
-#' Calls [compboost::compboost()] from package \CRANpkg{compboost}.
+#' Calls [compboost::Compboost()] from package \CRANpkg{compboost}.
 #'
 #' @template section_dictionary_learner
 #' @templateVar id classif.compboost
