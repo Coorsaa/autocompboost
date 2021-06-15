@@ -6,7 +6,7 @@
 \title{CompBoost Regression Learner}
 \description{
 Componentwise boosting
-Calls \code{\link[compboost:compboost]{compboost::compboost()}} from package \CRANpkg{compboost}.
+Calls \code{\link[compboost:Compboost]{compboost::Compboost()}} from package \CRANpkg{compboost}.
 
 Create a \code{LearnerRegrCompboost} object.
 }
