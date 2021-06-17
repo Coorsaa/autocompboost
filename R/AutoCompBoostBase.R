@@ -94,6 +94,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
       self$task = assert_task(task)
       self$resampling = resampling %??% rsmp("cv", folds = 3)
+      self$measure = assert_measure(measure)
       self$tuning_time = assert_number(tuning_time, lower = 0)
       self$tuning_iters = assert_number(tuning_iters, lower = 0)
       check_subset(tuning_method, choices = c("mbo", "hyperband", "smash"))
@@ -294,7 +295,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       graph_learner = GraphLearner$new(pipeline, id = paste0(self$task$task_type, ".autocompboost"))
 
       # fallback learner is featureless learner for classification / regression
-      # graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
+      graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
       # use callr encapsulation so we are able to kill model training, if it
       # takes too long
       graph_learner$encapsulate = c(train = "callr", predict = "callr")
