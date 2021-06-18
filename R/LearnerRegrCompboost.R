@@ -23,11 +23,11 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
         params = list(
           ParamDbl$new(id = "df", default = 4, lower = 1),
           ParamDbl$new(id = "df_cat", default = 4, lower = 1),
-          ParamInt$new(id = "iters_max_univariat", default = 10000L, lower = 1L),
+          ParamInt$new(id = "iters_max_univariate", default = 10000L, lower = 1L),
           ParamInt$new(id = "iters_max_interactions", default = 10000L, lower = 1L),
           ParamDbl$new(id = "learning_rate_univariate", default = 0.01, lower = 0),
           ParamDbl$new(id = "learning_rate_interactions", default = 0.1, lower = 0),
-          ParamDbl$new(id = "n_knots_univariat", default = 20L, lower = 4),
+          ParamDbl$new(id = "n_knots_univariate", default = 20L, lower = 4),
           ParamDbl$new(id = "n_knots_interactions", default = 10L, lower = 4),
           ParamInt$new(id = "ncores", default = 1L, lower = 1L, upper = parallel::detectCores() - 1L),
           ParamDbl$new(id = "stop_epsylon_for_break", default = 0.00001, lower = 0, upper = 1),
@@ -37,14 +37,14 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
           ParamDbl$new(id = "n_min_interactions", default = 10L, lower = 0),
           ParamLgl$new(id = "use_early_stopping", default = TRUE),
           ParamLgl$new(id = "show_output", default = FALSE),
-          ParamLgl$new(id = "just_univariat", default = FALSE),
+          ParamLgl$new(id = "just_univariate", default = FALSE),
           ParamLgl$new(id = "add_rf", default = FALSE),
           ParamInt$new(id = "train_time_total", default = 0, lower = 0)
         ))
       ps$values = list(df = 6, show_output = FALSE, top_interactions = 0.02,
         n_min_interactions = 10L, learning_rate_univariate = 0.01,
-        learning_rate_interactions = 0.05, train_time_total = 10, iters_max_univariat = 50000L,
-        iters_max_interactions = 50000L, n_knots_univariat = 15, n_knots_interactions = 8,
+        learning_rate_interactions = 0.05, train_time_total = 10, iters_max_univariate = 50000L,
+        iters_max_interactions = 50000L, n_knots_univariate = 15, n_knots_interactions = 8,
         use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-6)
 
       super$initialize(
@@ -95,7 +95,7 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
       ### Add base-learner/components (linear + centered spline):
       nuisance = lapply(task$feature_names, function(nm) {
         if (is.numeric(task$data()[[nm]])) {
-          cboost_uni$addComponents(nm, n_knots = self$param_set$values$n_knots_univariat, df = self$param_set$values$df)
+          cboost_uni$addComponents(nm, n_knots = self$param_set$values$n_knots_univariate, df = self$param_set$values$df)
         } else {
           cboost_uni$addBaselearner(nm, "category", BaselearnerCategoricalRidge, df = self$param_set$values$df_cat)
         }
@@ -103,21 +103,21 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
 
       ### Train model:
       if (self$param_set$values$show_output) {
-        cboost_uni$train(self$param_set$values$iters_max_univariat)
+        cboost_uni$train(self$param_set$values$iters_max_univariate)
       } else {
-        nuisance = capture.output(cboost_uni$train(self$param_set$values$iters_max_univariat))
+        nuisance = capture.output(cboost_uni$train(self$param_set$values$iters_max_univariate))
       }
 
       ### Check if model was early stopped, if so, set it to iters - patience - 1 to set the
       ### optimal stopping iter:
       ld = cboost_uni$getLoggerData()
-      was_early_stopped = (max(ld[["_iterations"]]) < self$param_set$values[["iters_max_univariat"]]) &&
+      was_early_stopped = (max(ld[["_iterations"]]) < self$param_set$values[["iters_max_univariate"]]) &&
         (max(ld[["minutes"]]) < self$param_set$values[["train_time_total"]])
       if (was_early_stopped && (cboost_uni$getCurrentIteration() > self$param_set$values$stop_patience + 2))
         cboost_uni$train(cboost_uni$getCurrentIteration() - self$param_set$values$stop_patience - 1)
 
       out = list()
-      out[["univariat"]] = cboost_uni
+      out[["univariate"]] = cboost_uni
 
       ### Create new task for interaction detection:
       df_new = task$data()
@@ -144,7 +144,7 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
       df_new$residuals = res
       tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
 
-      if (! self$param_set$values$just_univariat) {
+      if (! self$param_set$values$just_univariate) {
 
         ### Extract interactions based on random forest:
         extracted_interactions = na.omit(po("extract_interactions", degree = 2)$train(list(tsk_new))$output)
@@ -262,7 +262,7 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
     .predict = function(task) {
       newdata = task$data(cols = task$feature_names)
 
-      lin_pred = self$model$univariat$predict(newdata)
+      lin_pred = self$model$univariate$predict(newdata)
       if (! is.null(self$model$interactions))
         lin_pred = lin_pred + self$model$interactions$predict(newdata)
 
@@ -280,8 +280,8 @@ lr1 = lrn("regr.compboost",
   df = 4, show_output = TRUE, top_interactions = 0.02,
   learning_rate_univariate = 0.01, learning_rate_interactions = 0.01,
   train_time_total = 5,
-  iters_max_univariat = 50000L, iters_max_interactions = 50000L,
-  n_knots_univariat = 10, n_knots_interactions = 10,
+  iters_max_univariate = 50000L, iters_max_interactions = 50000L,
+  n_knots_univariate = 10, n_knots_interactions = 10,
   use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-7)
 
 task = tsk("boston_housing")
@@ -289,14 +289,14 @@ lr1$train(task)
 pred = lr1$predict(task)
 pred$score(msrs(c("regr.mse", "regr.mae")))
 
-lr1$model$univariat$plotBlearnerTraces(n_legend = 20L)
+lr1$model$univariate$plotBlearnerTraces(n_legend = 20L)
 lr1$model$interactions$plotBlearnerTraces()
 
-inbag1 = lr1$model$univariat$getInbagRisk()
+inbag1 = lr1$model$univariate$getInbagRisk()
 inbag2 = lr1$model$interactions$getInbagRisk()
-oob1   = lr1$model$univariat$getLoggerData()$oob_risk
+oob1   = lr1$model$univariate$getLoggerData()$oob_risk
 oob2   = lr1$model$interactions$getLoggerData()$oob_risk
-cutoff = lr1$model$univariat$getCurrentIteration()
+cutoff = lr1$model$univariate$getCurrentIteration()
 
 
 yrg = c(min(inbag2, oob2), max(inbag1, oob1))

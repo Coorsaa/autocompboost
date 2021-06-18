@@ -24,11 +24,11 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         params = list(
           ParamDbl$new(id = "df", default = 4, lower = 1),
           ParamDbl$new(id = "df_cat", default = 4, lower = 1),
-          ParamInt$new(id = "iters_max_univariat", default = 10000L, lower = 1L),
+          ParamInt$new(id = "iters_max_univariate", default = 10000L, lower = 1L),
           ParamInt$new(id = "iters_max_interactions", default = 10000L, lower = 1L),
           ParamDbl$new(id = "learning_rate_univariate", default = 0.01, lower = 0),
           ParamDbl$new(id = "learning_rate_interactions", default = 0.1, lower = 0),
-          ParamDbl$new(id = "n_knots_univariat", default = 20L, lower = 4),
+          ParamDbl$new(id = "n_knots_univariate", default = 20L, lower = 4),
           ParamDbl$new(id = "n_knots_interactions", default = 10L, lower = 4),
           ParamLgl$new(id = "use_components", default = TRUE),
           ParamInt$new(id = "ncores", default = trunc(cores_max / 2), lower = 1L, upper = cores_max),
@@ -39,9 +39,9 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           ParamDbl$new(id = "n_min_interactions", default = 10L, lower = 0),
           ParamLgl$new(id = "use_early_stopping", default = TRUE),
           ParamLgl$new(id = "show_output", default = FALSE),
-          ParamLgl$new(id = "just_univariat", default = FALSE),
+          ParamLgl$new(id = "just_univariate", default = FALSE),
           ParamLgl$new(id = "add_deeper_interactions", default = FALSE),
-          ParamInt$new(id = "iters_deeper_interactions", default = 100, lower = 0),
+          ParamInt$new(id = "iters_deeper_interactions", default = 500, lower = 0),
           ParamDbl$new(id = "learning_rate_deeper_interactions", default = 0.2, lower = 0, upper = 1),
           ParamInt$new(id = "train_time_total", default = 0, lower = 0),
           ParamInt$new(id = "n_threshold_binning", default = 4900, lower = 0)
@@ -55,11 +55,11 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
         # Univariate model:
         learning_rate_univariate = 0.1,
-        n_knots_univariat = 15,
-        iters_max_univariat = 50000L,
+        n_knots_univariate = 15,
+        iters_max_univariate = 50000L,
 
         # Interaction model (tensor splines):
-        just_univariat = FALSE,
+        just_univariate = FALSE,
         top_interactions = 0.02,
         learning_rate_interactions = 0.15,
         n_knots_interactions = 8,
@@ -67,7 +67,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
         # Control deeper interactions (trees):
         add_deeper_interactions = FALSE,
-        iters_deeper_interactions = 100L,
+        iters_deeper_interactions = 500L,
         learning_rate_deeper_interactions = 0.15,
 
         # Control early stopping:
@@ -154,9 +154,9 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           })
           ### Train model:
           if (self$param_set$values$show_output)
-            cboost_uni$train(self$param_set$values$iters_max_univariat)
+            cboost_uni$train(self$param_set$values$iters_max_univariate)
           else
-            nuisance = capture.output(cboost_uni$train(self$param_set$values$iters_max_univariat))
+            nuisance = capture.output(cboost_uni$train(self$param_set$values$iters_max_univariate))
         }, silent = TRUE)
 
         if (class(e) == "try-error") {
@@ -180,9 +180,9 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       }
 
       out = list()
-      out[["univariat"]] = cboost_uni
+      out[["univariate"]] = cboost_uni
 
-      if (self$param_set$values$just_univariat) return(out)
+      if (self$param_set$values$just_univariate) return(out)
 
       ### Create new task for interaction detection:
       df_new = task$data()
@@ -196,7 +196,6 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       # Define new task with 'residuals' as target
       df_new$residuals = pseudo_uni
       tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
-
 
       ### Extract interactions based on random forest:
       extracted_interactions = na.omit(po("extract_interactions", degree = 2)$train(list(tsk_new))$output)
@@ -258,21 +257,25 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         tintuse = Inf
       }
 
-      ### Train interaction model:
-      if (self$param_set$values$show_output)
-        cboost_int$train(self$param_set$values$iters_max_interactions)
-      else
-        nuisance = capture.output(cboost_int$train(self$param_set$values$iters_max_interactions))
+      if (length(cboost_int$getBaselearnerNames()) > 0) {
+        ### Train interaction model:
+        if (self$param_set$values$show_output)
+          cboost_int$train(self$param_set$values$iters_max_interactions)
+        else
+          nuisance = capture.output(cboost_int$train(self$param_set$values$iters_max_interactions))
 
-      ### Post check if model was really trained on the same data::
-      ch1 = all.equal(cboost_uni$data, cboost_int$data)
-      if (!ch1) stop("Check failed! Data for both models is not equal!")
+        ### Post check if model was really trained on the same data::
+        ch1 = all.equal(cboost_uni$data, cboost_int$data)
+        if (!ch1) stop("Check failed! Data for both models is not equal!")
 
-      if (self$param_set$values$use_early_stopping) {
-        ch2 = all.equal(cboost_uni$response_oob$getResponse(), cboost_int$response_oob$getResponse())
-        if (!ch2) stop("Check failed! Response for both models is not equal!")
+        if (self$param_set$values$use_early_stopping) {
+          ch2 = all.equal(cboost_uni$response_oob$getResponse(), cboost_int$response_oob$getResponse())
+          if (!ch2) stop("Check failed! Response for both models is not equal!")
+        }
+        out[["interactions"]] = cboost_int
+      } else {
+        warning("No interactions were included! Cannot train interaction model.")
       }
-      out[["interactions"]] = cboost_int
 
       ### STOP if no deeper interactions are specified:
       if (! self$param_set$values$add_deeper_interactions) return(out)
@@ -300,7 +303,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
     .predict = function(task) {
       newdata = task$data(cols = task$feature_names)
 
-      lin_pred = self$model$univariat$predict(newdata)
+      lin_pred = self$model$univariate$predict(newdata)
       if (! is.null(self$model$interactions))
         lin_pred = lin_pred + self$model$interactions$predict(newdata)
 
@@ -314,8 +317,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
       probs = 1 / (1 + exp(-lin_pred))
 
-      pos = self$model$univariat$response$getPositiveClass()
-      neg = setdiff(names(self$model$univariat$response$getClassTable()), pos)
+      pos = self$model$univariate$response$getPositiveClass()
+      neg = setdiff(names(self$model$univariate$response$getClassTable()), pos)
       pmat = matrix(c(probs, 1 - probs), ncol = 2L, nrow = length(probs))
       colnames(pmat) = c(pos, neg)
 
@@ -323,9 +326,10 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         list(prob = pmat)
 
       if (self$predict_type == "response")
-        list(response = ifelse(probs > self$model$univariat$response$getThreshold(), pos, neg))
+        list(response = ifelse(probs > self$model$univariate$response$getThreshold(), pos, neg))
       else
         list(prob = pmat)
+
     }
   )
 )
@@ -344,8 +348,8 @@ cboost_pars = list("classif.compboost",
   predict_type = "prob", df = 6, show_output = TRUE, top_interactions = 0.02,
   learning_rate_univariate = 0.01, learning_rate_interactions = 0.05,
   train_time_total = 5,
-  iters_max_univariat = 2500L, iters_max_interactions = 2500L,
-  n_knots_univariat = 10, n_knots_interactions = 10,
+  iters_max_univariate = 2500L, iters_max_interactions = 2500L,
+  n_knots_univariate = 10, n_knots_interactions = 10,
   use_early_stopping = TRUE, stop_patience = 10L, stop_epsylon_for_break = 1e-6,
   ncores = 4)
 
@@ -355,15 +359,15 @@ lr = lrn("classif.compboost", id = "cboost",
   predict_type = "prob", df = 6, show_output = TRUE, top_interactions = 0.02,
   learning_rate_univariate = 0.01, learning_rate_interactions = 0.05,
   train_time_total = 5,
-  iters_max_univariat = 50000L, iters_max_interactions = 50000L,
-  n_knots_univariat = 10, n_knots_interactions = 10,
+  iters_max_univariate = 50000L, iters_max_interactions = 50000L,
+  n_knots_univariate = 10, n_knots_interactions = 10,
   use_early_stopping = TRUE, stop_patience = 6L, stop_epsylon_for_break = 1e-6,
   ncores = 6)
 lr$train(task)
 
 lr = do.call(lrn, c(cboost_pars, id = "cboost"))
 lr_wrf = do.call(lrn, c(cboost_pars, add_deeper_interactions = TRUE, id = "cboost with rf"))
-lr_uni = do.call(lrn, c(cboost_pars, just_univariat = TRUE, id = "cboost univariat"))
+lr_uni = do.call(lrn, c(cboost_pars, just_univariate = TRUE, id = "cboost univariate"))
 
 options("mlr3.debug" = TRUE)
 
@@ -504,24 +508,22 @@ R
 #devtools::install("~/repos/compboost")
 devtools::load_all()
 
-task = tsk("spam")
+#task = tsk("spam")
 task = tsk("oml", task_id = 359994)
 
-lr = lrn("classif.compboost", predict_type = "prob", just_univariat = TRUE,
+mstop = 100L
+
+lr_bin = lrn("classif.compboost", predict_type = "prob", just_univariate = TRUE,
+  use_components = TRUE, n_threshold_binning = 0, show_output = TRUE,
+  iters_max_univariate = mstop, use_early_stopping = FALSE, ncores = 4)
+#lr$train(task)
+
+lr_nobin = lrn("classif.compboost", predict_type = "prob", just_univariate = TRUE,
   use_components = TRUE, n_threshold_binning = 40000000, show_output = TRUE,
-  iters_max_univariat = 100L, use_early_stopping = FALSE, ncores = 4,
-  val_fraction = 0.3)
-lr$train(task)
+  iters_max_univariate = mstop, use_early_stopping = FALSE, ncores = 4)
+#lr0$train(task)
 
-lr$model
-
-
-lr0 = lrn("classif.compboost", predict_type = "prob", just_univariat = TRUE,
-  use_components = TRUE, n_threshold_binning = 6000, show_output = TRUE,
-  iters_max_univariat = 1000L, use_early_stopping = FALSE, ncores = 4)
-lr0$train(task)
-
-mb = microbenchmark::microbenchmark(lr$train(tsk("spam")), lr0$train(tsk("spam")), times = 3L)
+mb = microbenchmark::microbenchmark(lr_bin$train(task), lr_nobin$train(task), times = 3L)
 mb
 
 }

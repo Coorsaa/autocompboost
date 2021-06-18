@@ -4,7 +4,7 @@
 \alias{autocompboost_preproc_pipeline}
 \title{autocompboost_preproc_pipeline}
 \usage{
-autocompboost_preproc_pipeline(task, max_cardinality = 1000)
+autocompboost_preproc_pipeline(task, max_cardinality = 100)
 }
 \arguments{
 \item{task}{(\code{\link[mlr3:Task]{Task}}) \cr

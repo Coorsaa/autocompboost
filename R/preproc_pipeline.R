@@ -10,7 +10,7 @@
 #' collapsed using [`PipeOpCollapseFactors`][mlr3pipelines::PipeOpCollapseFactors]. Default is set to 1000.
 #' @return [`Graph`][mlr3pipelines::Graph]
 #' @export
-autocompboost_preproc_pipeline = function(task, max_cardinality = 1000) {
+autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
   has_type_feats = function(types, if_null = TRUE) {
     if (is.null(task)) if_null else any(types %in% task$feature_types$type)
   }
