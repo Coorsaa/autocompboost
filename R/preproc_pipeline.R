@@ -17,7 +17,6 @@ autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
 
   if (!is.null(task)) assert_task(task)
 
-  browser()
   pos = list()
 
   if (has_type_feats("character")) {

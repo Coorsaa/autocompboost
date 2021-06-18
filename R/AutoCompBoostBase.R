@@ -20,6 +20,8 @@
 #' @param resampling ([Resampling][mlr3::Resampling]) \cr
 #' Contains the resampling method to be used for hyper-parameter optimization.
 #' Defaults to [ResamplingCV][mlr3::ResamplingCV] with 3 folds.
+#' @param param_values (`list()`) \cr
+#' Parameter values which are pass on to the learner.
 #' @param measure ([Measure][mlr3::Measure]) \cr
 #' Contains the performance measure, for which we optimize during training. \cr
 #' Defaults to [Accuracy][mlr3measures::acc] for classification and [RMSE][mlr3measures::rmse] for regression.
@@ -38,6 +40,8 @@
 #' Contains the task to be solved.
 #' @field learner ([AutoTuner][mlr3tuning::AutoTuner]) \cr
 #' The ML pipeline at the core of mlr3automl is an [AutoTuner][mlr3tuning::AutoTuner] containing a [GraphLearner][mlr3pipelines::GraphLearner].
+#' @field param_values (`list()`) \cr
+#' Parameter values which are pass on to the learner.
 #' @field resampling ([Resampling][mlr3::Resampling]) \cr
 #' Contains the resampling method to be used for hyper-parameter optimization.
 #' @field measure ([Measure][mlr3::Measure]) \cr
@@ -73,6 +77,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
   public = list(
     task = NULL,
     learner = NULL,
+    param_values = NULL,
     resampling = NULL,
     measure = NULL,
     tuning_method = NULL,
@@ -86,7 +91,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Creates a new instance of this [R6][R6::R6Class] class.
     #'
     #' @return [AutoCompBoostBase][autocompboost::AutoCompBoostBase]
-    initialize = function(task, resampling = NULL, measure = NULL, tuning_method = "mbo",
+    initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "mbo",
       tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) { # FIXME possibly add: , stratify = TRUE, tune_threshold = TRUE) {
 
       if (!is.null(resampling)) assert_resampling(resampling)
@@ -94,6 +99,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
       self$task = assert_task(task)
       self$resampling = resampling %??% rsmp("cv", folds = 3)
+      self$param_values = assert_list(param_values)
       self$measure = assert_measure(measure)
       self$tuning_time = assert_number(tuning_time, lower = 0)
       self$tuning_iters = assert_number(tuning_iters, lower = 0)
@@ -132,7 +138,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         # )
         stopf("This tuning method is currently not supported") # FIXME
       }
-      self$learner = private$.create_learner()
+      self$learner = private$.create_learner(param_values)
       self$final_model = assert_logical(final_model)
     },
 
@@ -273,7 +279,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
   private = list(
     .final_model = NULL,
-    .create_learner = function() {
+    .create_learner = function(param_values = NULL) {
       # get preproc pipeline
       if (self$task$task_type == "classif") {
         pipeline = autocompboost_preproc_pipeline(self$task, max_cardinality = 1000) %>>% po("subsample", stratify = TRUE)
@@ -282,18 +288,25 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       }
 
       # compboost learner
+      learner = lrn(paste0(self$task$task_type, ".compboost"), show_output = TRUE)
+      if (!is.null(self$param_values)) {
+        learner$param_set$values = insert_named(learner$param_set$values, self$param_values)
+      }
+      if (self$task$task_type == "classif") {
+        learner$predict_type = "prob"
+      }
       if (self$task$task_type == "classif" && length(self$task$class_names) > 2) {
-        # pipelne for multiclass
-        # can be removed when compoboost supports multiclass classification
-        pipeline = pipeline %>>%
-          pipeline_ovr(lrn(paste0(self$task$task_type, ".compboost"), predict_type = "prob", show_output = TRUE))
+          # pipelne for multiclass
+          # can be removed when compoboost supports multiclass classification
+          pipeline = pipeline %>>%
+            pipeline_ovr(learner)
       } else {
         pipeline = pipeline %>>%
-          lrn(paste0(self$task$task_type, ".compboost"), predict_type = "prob", show_output = TRUE)
+          learner
       }
 
       # create graphlearner
-      graph_learner = GraphLearner$new(pipeline, id = paste0(self$task$task_type, ".autocompboost"))
+      graph_learner = as_learner(pipeline)
 
       # fallback learner is featureless learner for classification / regression
       # graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
@@ -311,14 +324,16 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       #  )
       # }
 
-      return(AutoTuner$new(
+      at = AutoTuner$new(
         learner = graph_learner,
         resampling = self$resampling,
         measure = self$measure,
         search_space = param_set,
         terminator = self$tuning_terminator,
         tuner = self$tuner
-      ))
+      )
+      at$id = paste0(self$task$task_type, ".autocompboost")
+      return(at)
     }
   )
 )

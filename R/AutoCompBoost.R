@@ -8,6 +8,8 @@
 #' @param resampling ([Resampling][mlr3::Resampling]) \cr
 #' Contains the resampling method to be used for hyper-parameter optimization.
 #' Defaults to [ResamplingCV][mlr3::ResamplingCV] with 3 folds.
+#' @param param_values (`list()`) \cr
+#' Parameter values which are pass on to the learner.
 #' @param measure ([Measure][mlr3::Measure]) \cr
 #' Contains the performance measure, for which we optimize during training. \cr
 #' Defaults to [Accuracy][mlr3measures::acc] for classification and [RMSE][mlr3measures::rmse] for regression.
@@ -34,7 +36,7 @@
 #' model = AutoCompBoost(tsk("sonar"))
 #' model$train()
 #' }
-AutoCompBoost = function(task, resampling = NULL, measure = NULL, tuning_method = "mbo",
+AutoCompBoost = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "mbo",
   tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) {
   if (task$task_type == "classif") {
     # stratify target variable so that every target lable appears in all folds while resampling
@@ -42,11 +44,11 @@ AutoCompBoost = function(task, resampling = NULL, measure = NULL, tuning_method 
     if (length(target_is_factor) == 1 && target_is_factor) {
       task$col_roles$stratum = task$target_names
     }
-    return(AutoCompBoostClassif$new(task = task, resampling = resampling,
+    return(AutoCompBoostClassif$new(task = task, resampling = resampling, param_values = param_values,
       measure = measure, tuning_method = tuning_method, tuning_time = tuning_time, tuning_iters = tuning_iters,
       final_model = final_model))
   } else if (task$task_type == "regr") {
-    return(AutoCompBoostRegr$new(task = task, resampling = resampling,
+    return(AutoCompBoostRegr$new(task = task, resampling = resampling, param_values = param_values,
       measure = measure, tuning_method = tuning_method, tuning_time = tuning_time, tuning_iters = tuning_iters,
       final_model = final_model))
   } else {

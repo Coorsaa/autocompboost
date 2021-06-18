@@ -15,6 +15,8 @@
 #' @param resampling ([Resampling][mlr3::Resampling]) \cr
 #' Contains the resampling method to be used for hyper-parameter optimization.
 #' Defaults to [ResamplingCV][mlr3::ResamplingCV] with 3 folds.
+#' @param param_values (`list()`) \cr
+#' Parameter values which are pass on to the learner.
 #' @param measure ([Measure][mlr3::Measure]) \cr
 #' Contains the performance measure, for which we optimize during training. \cr
 #' Defaults to [Accuracy][mlr3measures::acc] for classification and [RMSE][mlr3measures::rmse] for regression.
@@ -45,14 +47,14 @@ AutoCompBoostClassif = R6Class(
     #' Creates a new instance of this [R6][R6::R6Class] class.
     #'
     #' @return [AutoCompBoostClassif][autocompboost::AutoCompBoostClassif]
-    initialize = function(task, resampling = NULL, measure = NULL, tuning_method = "mbo",
+    initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "mbo",
       tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) {
       checkmate::assert_r6(task, "TaskClassif")
       assert_number(tuning_iters)
       assert_number(tuning_time)
       self$measure = measure %??% mlr_measures$get("classif.acc")
 
-      super$initialize(task = task, resampling = resampling,
+      super$initialize(task = task, resampling = resampling, param_values = param_values,
         measure = self$measure, tuning_method = tuning_method, tuning_time = tuning_time,
         tuning_iters = tuning_iters, final_model = final_model)
     }
