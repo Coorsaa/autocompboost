@@ -282,23 +282,24 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       }
 
       # compboost learner
-      pipeline = pipeline %>>%
-        lrn(paste0(self$task$task_type, ".compboost"), predict_type = "prob", show_output = TRUE)
-
-      # pipelne for multiclass
-      # can be removed when compoboost supports multiclass classification
       if (self$task$task_type == "classif" && length(self$task$class_names) > 2) {
-        pipeline = pipeline_ovr(pipeline)
+        # pipelne for multiclass
+        # can be removed when compoboost supports multiclass classification
+        pipeline = pipeline %>>%
+          pipeline_ovr(lrn(paste0(self$task$task_type, ".compboost"), predict_type = "prob", show_output = TRUE))
+      } else {
+        pipeline = pipeline %>>%
+          lrn(paste0(self$task$task_type, ".compboost"), predict_type = "prob", show_output = TRUE)
       }
 
       # create graphlearner
       graph_learner = GraphLearner$new(pipeline, id = paste0(self$task$task_type, ".autocompboost"))
 
       # fallback learner is featureless learner for classification / regression
-      graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
+      # graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
       # use callr encapsulation so we are able to kill model training, if it
       # takes too long
-      graph_learner$encapsulate = c(train = "callr", predict = "callr")
+      # graph_learner$encapsulate = c(train = "callr", predict = "callr")
 
       param_set = autocompboost_default_params(self$task$task_type)
 
