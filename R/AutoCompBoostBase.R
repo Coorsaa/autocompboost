@@ -106,11 +106,12 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       check_subset(tuning_method, choices = c("mbo", "hyperband", "smash"))
       self$tuning_method = assert_character(tuning_method, len = 1)
 
-      self$tuning_terminator = trm("combo", list(
-        trm("run_time", secs = self$tuning_time),
-        trm("evals", n_evals = self$tuning_iters)
-        ), any = TRUE
-      )
+      self$tuning_terminator = trm("run_time", secs = self$tuning_time)
+      # self$tuning_terminator = trm("combo", list(
+      #   trm("run_time", secs = self$tuning_time),
+      #   trm("evals", n_evals = self$tuning_iters)
+      #   ), any = TRUE
+      # )
 
       if (tuning_method == "mbo") {
         self$tuner = tnr("intermbo")

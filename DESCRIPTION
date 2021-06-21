@@ -31,7 +31,6 @@ Imports:
     mlrintermbo,
     compboost,
     paradox,
-    miesmuschel,
     R6,
     testthat
 Suggests:
