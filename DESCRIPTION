@@ -41,8 +41,6 @@ Suggests:
     rpart,
     ranger
 Remotes:
-    mlr-org/miesmuschel@multiobjective_hb
-    mlr-org/paradox#323
     schalkdaniel/compboost@tensors
 Encoding: UTF-8
 LazyData: true

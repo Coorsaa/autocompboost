@@ -99,7 +99,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
       self$task = assert_task(task)
       self$resampling = resampling %??% rsmp("cv", folds = 3)
-      self$param_values = assert_list(param_values)
+      self$param_values = assert_list(param_values, null.ok = TRUE)
       self$measure = assert_measure(measure)
       self$tuning_time = assert_number(tuning_time, lower = 0)
       self$tuning_iters = assert_number(tuning_iters, lower = 0)

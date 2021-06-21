@@ -11,6 +11,9 @@ Contains the task to be solved. Currently \code{\link[mlr3:TaskClassif]{TaskClas
 Contains the resampling method to be used for hyper-parameter optimization.
 Defaults to \link[mlr3:mlr_resamplings_cv]{ResamplingCV} with 3 folds.}
 
+\item{param_values}{(\code{list()}) \cr
+Parameter values which are pass on to the learner.}
+
 \item{measure}{(\link[mlr3:Measure]{Measure}) \cr
 Contains the performance measure, for which we optimize during training. \cr
 Defaults to \link[mlr3measures:acc]{Accuracy} for classification and \link[mlr3measures:rmse]{RMSE} for regression.}
@@ -93,6 +96,9 @@ Contains the task to be solved.}
 
 \item{\code{learner}}{(\link[mlr3tuning:AutoTuner]{AutoTuner}) \cr
 The ML pipeline at the core of mlr3automl is an \link[mlr3tuning:AutoTuner]{AutoTuner} containing a \link[mlr3pipelines:mlr_learners_graph]{GraphLearner}.}
+
+\item{\code{param_values}}{(\code{list()}) \cr
+Parameter values which are pass on to the learner.}
 
 \item{\code{resampling}}{(\link[mlr3:Resampling]{Resampling}) \cr
 Contains the resampling method to be used for hyper-parameter optimization.}

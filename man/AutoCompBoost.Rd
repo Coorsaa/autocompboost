@@ -7,6 +7,7 @@
 AutoCompBoost(
   task,
   resampling = NULL,
+  param_values = NULL,
   measure = NULL,
   tuning_method = "mbo",
   tuning_time = 60L,
@@ -21,6 +22,9 @@ Contains the task to be solved. Currently \code{\link[mlr3:TaskClassif]{TaskClas
 \item{resampling}{(\link[mlr3:Resampling]{Resampling}) \cr
 Contains the resampling method to be used for hyper-parameter optimization.
 Defaults to \link[mlr3:mlr_resamplings_cv]{ResamplingCV} with 3 folds.}
+
+\item{param_values}{(\code{list()}) \cr
+Parameter values which are pass on to the learner.}
 
 \item{measure}{(\link[mlr3:Measure]{Measure}) \cr
 Contains the performance measure, for which we optimize during training. \cr

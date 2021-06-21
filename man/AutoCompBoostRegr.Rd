@@ -11,6 +11,9 @@
 Contains the resampling method to be used for hyper-parameter optimization.
 Defaults to \link[mlr3:mlr_resamplings_cv]{ResamplingCV} with 3 folds.}
 
+\item{param_values}{(\code{list()}) \cr
+Parameter values which are pass on to the learner.}
+
 \item{measure}{(\link[mlr3:Measure]{Measure}) \cr
 Contains the performance measure, for which we optimize during training. \cr
 Defaults to \link[mlr3measures:acc]{Accuracy} for classification and \link[mlr3measures:rmse]{RMSE} for regression.}
