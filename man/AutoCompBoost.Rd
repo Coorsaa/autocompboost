@@ -12,6 +12,7 @@ AutoCompBoost(
   tuning_method = "mbo",
   tuning_time = 60L,
   tuning_iters = 150L,
+  enable_tuning = TRUE,
   final_model = TRUE
 )
 }
@@ -40,6 +41,9 @@ Default is set to \code{60}, i.e. one minute. Tuning is terminated depending on 
 \item{tuning_iters}{(\code{integer(1)}) \cr
 Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 Default is set to \code{150} iterations. Tuning is terminated depending on the first termination criteria fulfilled.}
+
+\item{enable_tuning}{(\code{logical(1)}) \cr
+Whether or not to perform hyperparameter optimization. Default is \code{TRUE}.}
 
 \item{final_model}{(\code{logical(1)}) \cr
 Whether or not to return the final model trained on the whole dataset at the end.}

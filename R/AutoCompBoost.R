@@ -21,6 +21,8 @@
 #' @param tuning_iters (`integer(1)`) \cr
 #' Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 #' Default is set to `150` iterations. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @param enable_tuning (`logical(1)`) \cr
+#' Whether or not to perform hyperparameter optimization. Default is `TRUE`.
 #' @param final_model (`logical(1)`) \cr
 #' Whether or not to return the final model trained on the whole dataset at the end.
 #'
@@ -37,7 +39,7 @@
 #' model$train()
 #' }
 AutoCompBoost = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "mbo",
-  tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) {
+  tuning_time = 60L, tuning_iters = 150L, enable_tuning = TRUE, final_model = TRUE) {
   if (task$task_type == "classif") {
     # stratify target variable so that every target lable appears in all folds while resampling
     target_is_factor = task$col_info[task$col_info$id == task$target_names, ]$type == "factor"
@@ -46,11 +48,11 @@ AutoCompBoost = function(task, resampling = NULL, param_values = NULL, measure =
     }
     return(AutoCompBoostClassif$new(task = task, resampling = resampling, param_values = param_values,
       measure = measure, tuning_method = tuning_method, tuning_time = tuning_time, tuning_iters = tuning_iters,
-      final_model = final_model))
+      enable_tuning = enable_tuning, final_model = final_model))
   } else if (task$task_type == "regr") {
     return(AutoCompBoostRegr$new(task = task, resampling = resampling, param_values = param_values,
       measure = measure, tuning_method = tuning_method, tuning_time = tuning_time, tuning_iters = tuning_iters,
-      final_model = final_model))
+      enable_tuning = enable_tuning, final_model = final_model))
   } else {
     stop("autocompboost only supports classification and regression tasks for now")
   }

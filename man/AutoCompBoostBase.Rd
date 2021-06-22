@@ -29,6 +29,9 @@ Default is set to \code{3600}, i.e. one hour. Tuning is terminated depending on 
 Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 Default is set to \code{150} iterations. Tuning is terminated depending on the first termination criteria fulfilled.}
 
+\item{enable_tuning}{(\code{logical(1)}) \cr
+Whether or not to perform hyperparameter optimization. Default is \code{TRUE}.}
+
 \item{final_model}{(\code{logical(1)}) \cr
 Whether or not to return the final model trained on the whole dataset at the end.}
 
@@ -116,6 +119,9 @@ Default is set to \code{60}, i.e. one minuet. Tuning is terminated depending on 
 \item{\code{tuning_iters}}{(\code{integer(1)}) \cr
 Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 Default is set to \code{150} iterations. Tuning is terminated depending on the first termination criteria fulfilled.}
+
+\item{\code{enable_tuning}}{(\code{logical(1)}) \cr
+Whether or not to perform hyperparameter optimization. Default is \code{TRUE}.}
 
 \item{\code{final_model}}{(\code{logical(1)}) \cr
 Whether or not to return the final model trained on the whole dataset at the end.}

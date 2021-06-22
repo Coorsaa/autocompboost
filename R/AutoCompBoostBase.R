@@ -33,6 +33,8 @@
 #' @param tuning_iters (`integer(1)`) \cr
 #' Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 #' Default is set to `150` iterations. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @param enable_tuning (`logical(1)`) \cr
+#' Whether or not to perform hyperparameter optimization. Default is `TRUE`.
 #' @param final_model (`logical(1)`) \cr
 #' Whether or not to return the final model trained on the whole dataset at the end.
 #'
@@ -54,6 +56,8 @@
 #' @field tuning_iters (`integer(1)`) \cr
 #' Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 #' Default is set to `150` iterations. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @field enable_tuning (`logical(1)`) \cr
+#' Whether or not to perform hyperparameter optimization. Default is `TRUE`.
 #' @field final_model (`logical(1)`) \cr
 #' Whether or not to return the final model trained on the whole dataset at the end.
 #' @field tuner ([TunerInterMBO][mlrintermbo::TunerInterMBO]) \cr
@@ -83,6 +87,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     tuning_method = NULL,
     tuning_time = NULL,
     tuning_iters = NULL,
+    enable_tuning = TRUE,
     final_model = NULL,
     tuner = NULL,
     tuning_terminator = NULL,
@@ -92,7 +97,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #'
     #' @return [AutoCompBoostBase][autocompboost::AutoCompBoostBase]
     initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "mbo",
-      tuning_time = 60L, tuning_iters = 150L, final_model = TRUE) { # FIXME possibly add: , stratify = TRUE, tune_threshold = TRUE) {
+      tuning_time = 60L, tuning_iters = 150L, enable_tuning = TRUE, final_model = TRUE) { # FIXME possibly add: , stratify = TRUE, tune_threshold = TRUE) {
 
       if (!is.null(resampling)) assert_resampling(resampling)
       if (!is.null(measure)) assert_measure(measure)
@@ -101,6 +106,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       self$resampling = resampling %??% rsmp("cv", folds = 3)
       self$param_values = assert_list(param_values, null.ok = TRUE)
       self$measure = assert_measure(measure)
+      self$enable_tuning = assert_logical(enable_tuning)
       self$tuning_time = assert_number(tuning_time, lower = 0)
       self$tuning_iters = assert_number(tuning_iters, lower = 0)
       check_subset(tuning_method, choices = c("mbo", "hyperband", "smash"))
@@ -309,32 +315,36 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       # create graphlearner
       graph_learner = as_learner(pipeline)
 
-      # fallback learner is featureless learner for classification / regression
-      # graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
-      # use callr encapsulation so we are able to kill model training, if it
-      # takes too long
-      # graph_learner$encapsulate = c(train = "callr", predict = "callr")
+      if (!enable_tuning) {
+        return(graph_learner)
+      } else {
+        # fallback learner is featureless learner for classification / regression
+        # graph_learner$fallback = lrn(paste0(self$task$task_type, ".featureless"))
+        # use callr encapsulation so we are able to kill model training, if it
+        # takes too long
+        # graph_learner$encapsulate = c(train = "callr", predict = "callr")
 
-      param_set = autocompboost_default_params(self$task$task_type)
+        param_set = autocompboost_default_params(self$task$task_type)
 
-      # FIXME: use hard timeout from mlr3automl here?
-      # if (is.finite(self$tuning_time)) {
-      #  tuner = TunerWrapperHardTimeout$new(
-      #    tuner,
-      #    timeout = self$tuning_time
-      #  )
-      # }
+        # FIXME: use hard timeout from mlr3automl here?
+        # if (is.finite(self$tuning_time)) {
+        #  tuner = TunerWrapperHardTimeout$new(
+        #    tuner,
+        #    timeout = self$tuning_time
+        #  )
+        # }
 
-      at = AutoTuner$new(
-        learner = graph_learner,
-        resampling = self$resampling,
-        measure = self$measure,
-        search_space = param_set,
-        terminator = self$tuning_terminator,
-        tuner = self$tuner
-      )
-      at$id = paste0(self$task$task_type, ".autocompboost")
-      return(at)
+        at = AutoTuner$new(
+          learner = graph_learner,
+          resampling = self$resampling,
+          measure = self$measure,
+          search_space = param_set,
+          terminator = self$tuning_terminator,
+          tuner = self$tuner
+        )
+        at$id = paste0(self$task$task_type, ".autocompboost")
+        return(at)
+      }
     }
   )
 )
