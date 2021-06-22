@@ -42,6 +42,9 @@ was trained on.}
 \item{row_ids}{(\code{integer()}) \cr
 Vector of training indices.}
 
+\item{outer_resampling}{(\code{\link[mlr3:Resampling]{Resampling}}) \cr
+Resampling strategy. Default is \code{\link[mlr3:mlr_resamplings_holdout]{ResamplingHoldout}} for the outer resampling.}
+
 \item{spline}{(\code{character(1L)}) \cr
 Name of spline to plot.}
 }
@@ -57,6 +60,8 @@ Name of spline to plot.}
 \code{\link[data.table:data.table]{data.table}}
 
 \code{\link[compboost:Compboost]{Compboost}}
+
+\code{\link[mlr3:ResampleResult]{mlr3}}
 
 (\code{character()})
 
@@ -75,13 +80,15 @@ Trains the AutoML system.
 
 Returns a \link[mlr3:Prediction]{Prediction} object for the given data based on the trained model.
 
-Performs nested resampling. \code{\link[mlr3:mlr_resamplings_holdout]{ResamplingHoldout}} is used for the outer resampling.
+Performs nested resampling if \code{enable_tuning} equals \code{TRUE}.
 
 Helper to extract the best hyperparameters from a tuned model.
 
 Returns the model summary
 
 Returns the trained model if \code{final_model} is set to TRUE.
+
+Returns the resample result of method \code{resample()}.
 
 Returns the selected base learners by the final model.
 

@@ -180,17 +180,21 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     },
 
     #' @description
-    #' Performs nested resampling. [`ResamplingHoldout`][mlr3::ResamplingHoldout] is used for the outer resampling.
+    #' Performs nested resampling if `enable_tuning` equals `TRUE`.
+    #' @param outer_resampling ([`Resampling`][mlr3::Resampling]) \cr
+    #' Resampling strategy. Default is [`ResamplingHoldout`][mlr3::ResamplingHoldout] for the outer resampling.
     #' @return [`ResampleResult`][mlr3::ResampleResult]
-    resample = function() {
-      outer_resampling = rsmp("holdout")
-      resample_result = mlr3::resample(self$task, self$learner, outer_resampling)
-      self$learner = resample_result$learners[[1]]
+    resample = function(outer_resampling = NULL) {
+      outer_resampling = outer_resampling %??% rsmp("holdout")
+      assert_resampling(outer_resampling)
+
+      private$.resample_result = mlr3::resample(self$task, self$learner, outer_resampling)
+      self$learner = private$.resample_result$learners[[1]]
       if (length(self$learner$learner$errors) > 0) {
         warning("An error occured during training. Fallback learner was used!")
         print(self$learner$learner$errors)
       }
-      return(resample_result)
+      return(privat$.resample_result)
     },
 
     #' @description
@@ -225,6 +229,17 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
       } else {
         return(private$.final_model)
+      }
+    },
+
+    #' @description
+    #' Returns the resample result of method `resample()`.
+    #' @return [`mlr3`][mlr3::ResampleResult]
+    resample_result = function() {
+      if (is.null(private$.resample_result)) {
+        warning("Model has not been resampled yet. Run the $resample() method first.")
+      } else {
+        return(private$.resample_result)
       }
     },
 
@@ -286,6 +301,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
   private = list(
     .final_model = NULL,
+    .resample_result = NULL,
     .create_learner = function(param_values = NULL) {
       # get preproc pipeline
       if (self$task$task_type == "classif") {
