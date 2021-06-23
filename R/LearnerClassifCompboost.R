@@ -72,8 +72,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
         # Control early stopping:
         use_early_stopping = TRUE,
-        stop_patience = 6L,
-        stop_epsylon_for_break = 1e-7,
+        stop_patience = 2L,
+        stop_epsylon_for_break = 0,
         train_time_total = 120) # Restrict the training to 2 hours
 
       super$initialize(
@@ -84,6 +84,50 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         param_set = ps,
         properties = c("twoclass")
       )
+    },
+
+    getRiskStages = function(log_entry = "train_risk") {
+      if (is.null(self$model))
+        stop("Train learner first to extract risk values.")
+
+      out = data.frame(stage = c("featureless", "univariate", "pairwise-interactions", "deep-interactions"),
+        value = rep(NA_real_, 4L), explained = rep(NA_real_, 4L), percentage = rep(NA_real_, 4L),
+        iterations = rep(NA_integer_, 4L))
+
+      if ("univariate" %in% names(self$model)) {
+        logs = self$model$univariate$getLoggerData()
+        if (! log_entry %in% names(logs))
+          stop("No log entry", log_entry, "found in compboost log.")
+        out$value[1] = logs[[log_entry]][logs$baselearner == "intercept"]
+        out$value[2] = tail(logs[[log_entry]], 1)
+        out$iterations[1] = 0
+        out$iterations[2] = max(logs[["_iterations"]])
+      } else {
+        stop("At least univariate model must be given!")
+      }
+      if ("interactions" %in% names(self$model)) {
+        logs = self$model$interactions$getLoggerData()
+        if (! log_entry %in% names(logs))
+          stop("No log entry", log_entry, "found in compboost log.")
+        out$value[3] = tail(logs[[log_entry]], 1)
+        out$iterations[3] = max(logs[["_iterations"]])
+      }
+      if ("deeper_interactions" %in% names(self$model)) {
+        vals = vapply(X = self$model$deeper_interactions$trees, FUN = function(tree) {
+          if (! log_entry %in% names(tree))
+            stop("Cannot find log entry", log_entry, "in tree.")
+          return(tree[[log_entry]])
+        }, FUN.VALUE = numeric(1L))
+        if (length(vals) == 0)
+          out$value[4] = NA_real_
+        else
+          out$value[4] = tail(vals, 1L)
+
+        out$iterations[4] = length(vals)
+      }
+      out$explained = c(0, -diff(out$value))
+      out$percentage = out$explained / sum(out$explained, na.rm = TRUE)
+      return(out)
     }
   ),
 
@@ -332,8 +376,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         list(response = ifelse(probs > self$model$univariate$response$getThreshold(), pos, neg))
       else
         list(prob = pmat)
-
     }
+
   )
 )
 

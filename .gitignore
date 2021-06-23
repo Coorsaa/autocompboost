@@ -103,3 +103,4 @@ src/*.o
 src/*.so
 src/*.dll
 temp/valgrind-out/
+README.html

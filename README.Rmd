@@ -11,7 +11,101 @@ knitr::opts_chunk$set(
   fig.path = "Readme_files/"
 )
 
+#q()
+#R
+#devtools::install("~/repos/compboost")
+
 devtools::load_all(quiet = TRUE)
+library(ggplot2, quietly = TRUE)
+
+### Need to put this directly in compboost:
+predict.compboostExtract = function(object, newdata) {
+  feats = names(object)
+  feats = feats[feats != "offset"]
+  out = lapply(feats, function(ft) {
+    if (! ft %in% names(newdata)) {
+      warning("New data should contain all features used for building the model! Feature ", ft, " is missing.")
+      return(NULL)
+    } else {
+      eff = object[[ft]]$predict(newdata[[ft]])
+      pe = eff$linear + eff$nonlinear
+      return(list(pe = pe, effects = eff, src = newdata[[ft]]))
+    }
+  })
+  names(out) = feats
+  pred = rowSums(do.call(cbind, lapply(out, function(x) x$pe))) + object$offset
+  return(list(pred = pred, pe = out, offset = object$offset))
+}
+
+plotCategorical = function(feats, pe) {
+  plt_dat = do.call(rbind, lapply(feats, function(feat) {
+    if (! any(grepl(feat, names(pe))))
+      stop("Feature ", feat, " not in partial effects data.")
+    fidx = grep(feat, names(pe))
+    plt_data = data.frame(cat = rownames(pe[[fidx]]), est = pe[[fidx]], feature = feat)
+  }))
+  ggplot(data = plt_dat, aes(x = cat, y = est)) +
+    geom_boxplot() +
+    ylab("Contribution to prediction") +
+    xlab("") +
+    labs(color = "") +
+    theme(legend.position = "bottom") +
+    facet_wrap(. ~ feature, ncol = 3, scales = "free")
+}
+
+plotNumeric = function(feats, pe) {
+  plt_dat = do.call(rbind, lapply(feats, function(feat) {
+    if (! feat %in% names(pe$pe))
+      stop("Feature ", feat, " not in partial effects data.")
+    p = pe$pe[[feat]]
+    data.frame(x = p$src, pe = p$pe, linear = p$effects$linear,
+      nonlinear = p$effects$nonlinear, feature = feat)
+  }))
+  ggplot(data = plt_dat, aes(x = x)) +
+    geom_line(aes(y = linear, color = "Linear part"), alpha = 0.6, linetype = "dashed") +
+    geom_line(aes(y = nonlinear, color = "Nonlinear part"), alpha = 0.6, linetype = "dashed") +
+    geom_line(aes(y = pe, color = "Partial effect"), size = 1.3) +
+    geom_rug() +
+    ylab("Contribution to prediction") +
+    xlab("") +
+    labs(color = "") +
+    theme(legend.position = "bottom") +
+    facet_wrap(. ~ feature, ncol = 3, scales = "free")
+}
+
+
+### Put in compboostSplines:
+cpp_fun = "
+arma::mat rowWiseKronecker (const arma::mat& A, const arma::mat& B)
+{
+  // Variables
+  arma::mat out;
+  arma::rowvec vecA = arma::rowvec(A.n_cols, arma::fill::ones);
+  arma::rowvec vecB = arma::rowvec(B.n_cols, arma::fill::ones);
+
+  // Multiply both kronecker products element-wise
+  out = arma::kron(A,vecB) % arma::kron(vecA, B);
+
+  return out;
+}"
+Rcpp::cppFunction(depends = "RcppArmadillo", cpp_fun, rebuild = TRUE, showOutput = TRUE)
+
+predictTensor = function(dat, dato, coef, tnames, n_knots, degree) {
+  xo1 = dat[[tnames[1]]]
+  xo2 = dat[[tnames[2]]]
+
+  x1 = dat[[tnames[1]]]
+  x2 = dat[[tnames[2]]]
+
+  knots1 = compboostSplines::createKnots(values = xo1, n_knots = n_knots, degree = degree)
+  basis1 = compboostSplines::createSplineBasis(values = x1, degree = 3, knots = knots1)
+
+  knots2 = compboostSplines::createKnots(values = xo2, n_knots = n_knots, degree = degree)
+  basis2 = compboostSplines::createSplineBasis(values = x2, degree = 3, knots = knots2)
+
+  tensor = rowWiseKronecker(basis1, basis2)
+  return(tensor %*% coef)
+}
 ```
 
 # autocompboost
@@ -20,12 +114,91 @@ devtools::load_all(quiet = TRUE)
 
 ```{r}
 # Use airlines task from OpenML:
-airlines = tsk("oml", task_id = 189354)
+#task = tsk("oml", task_id = 189354) # airlines
+#task = tsk("oml", task_id = 31) # credig-g
+#task = tsk("oml", task_id = 14965) # bank-marketing
+task = tsk("oml", task_id = 7592) # adult
+
+task$filter(which(complete.cases(task$data())))
 
 # Train compboost learner:
+set.seed(31415)
 cboost = lrn("classif.compboost", predict_type = "prob", show_output = TRUE,
   learning_rate_univariate = 0.01, learning_rate_interactions = 0.01,
-  learning_rate_deeper_interactions = 0.01)
-cboost$train(airlines)
+  learning_rate_deeper_interactions = 0.01, add_deeper_interactions = TRUE,
+  stop_epsylon_for_break = 0, stop_patience = 3L, df = 4)
+cboost$train(task)
 
+## How much risk was explained by which stage:
+rstages = cboost$getRiskStages()
+rstages = rstages[-1, ]
+rstages$stage = factor(rstages$stage, levels = rstages$stage)
+ggplot(rstages, aes(x = "", y = percentage, fill = stage)) +
+  geom_bar(stat = "identity") +
+  theme(legend.position = "bottom") +
+  coord_flip() +
+  scale_y_reverse() +
+  xlab("") +
+  ylab("") +
+  ggtitle("Explained risk per stage") +
+  labs(fill = "") +
+  ggsci::scale_fill_uchicago()
+
+#### Univariate model:
+
+## Feature importance
+cboost$model$univariate$calculateFeatureImportance()
+vip = cboost$model$univariate$calculateFeatureImportance(aggregate_bl_by_feat = TRUE)
+
+cboost$model$univariate$plotFeatureImportance(aggregate_bl_by_feat = TRUE)
+
+## Partial effects:
+
+coefs = cboost$model$univariate$getEstimatedCoef()
+offset = coefs$offset
+
+# numeric
+extract = cboost$model$univariate$extractComponents()
+pe_numeric = predict(extract, newdata = task$data())
+
+# categorical
+pe_cat = coefs[grepl("Categorical", vapply(coefs, function(cf) {
+    atr = attr(cf, "blclass")
+    if (is.null(atr))
+      return("Offset")
+    else
+      return(atr)
+  }, character(1L)))]
+
+# Visualize top vars:
+
+# Visualize categorical features:
+plotCategorical(c("marital.status", "relationship", "occupation"), pe_cat) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Visualize numerical features:
+plotNumeric(c("capital.gain", "age", "capital.loss"), pe_numeric) +
+  ggsci::scale_color_uchicago()
+
+## Pairwise interactions:
+vip_int = cboost$model$interactions$calculateFeatureImportance()
+
+top_interaction = vip_int$baselearner[1]
+
+coefs_int = cboost$model$interactions$getEstimatedCoef()[[top_interaction]]
+
+dat0 = cboost$model$univariate$data
+
+dat = expand.grid(age = seq(min(dat0$age), max(dat0$age), length.out = 100),
+  capital.gain = seq(min(dat0$capital.gain), max(dat0$capital.gain), length.out = 100))
+
+n_knots = 8
+degree = 3
+
+dat$y = predictTensor(dat, dat0, coefs_int, c("age", "capital.gain"), n_knots, degree)
+ggplot() +
+  geom_contour_filled(data = dat, aes(x = age, y = capital.gain, z = y), bins = 15) +
+  geom_rug(data = dat0, aes(x = age, y = capital.gain))
 ```
+
+

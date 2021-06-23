@@ -34,6 +34,7 @@ boostRpart = function(task, lr, iters, patience, eps_for_break, use_es,
     lin = list()
     lin[["model"]] = do.call(lrn, largs)$train(t0, row_ids = idx_train)
     lin[["prediction"]] = lin[["model"]]$predict(t0)$response
+    lin[["time_train"]] = ttrain
 
     pred_new = lin[["prediction"]]
     pred_old = pred_old + lr * pred_new
@@ -60,7 +61,7 @@ boostRpart = function(task, lr, iters, patience, eps_for_break, use_es,
     train_risk_old = ll_trees[[i]][["train_risk"]]
     test_risk_old = ll_trees[[i]][["test_risk"]]
     cat("Tree ", i, ": train risk: ", round(train_risk_old, 4), " test risk: ",
-      round(test_risk_old, 4), " time: ", round(ttrain, 2), " Min.\n", sep = "")
+      round(test_risk_old, 4), " time: ", round(ttrain, 2), " Min. patience: ", k_stop, "\n", sep = "")
   }
   if (es_was_hit) {
     ll_trees[i:(i - patience)] = NULL
