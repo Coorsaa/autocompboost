@@ -155,12 +155,21 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Vector of training indices.
     train = function(row_ids = NULL) {
       self$learner$train(self$task, row_ids)
-      if (length(self$learner$learner$errors) > 0) {
-        warning("An error occured during training. Fallback learner was used!")
-        print(self$learner$learner$errors)
+      if (self$enable_tuning) {
+        if (length(self$learner$learner$errors) > 0) {
+          warning("An error occured during training. Fallback learner was used!")
+          print(self$learner$learner$errors)
+        }
+        if (self$final_model)
+        private$.final_model = self$learner$learner$model[[paste0(self$task$task_type, ".compboost")]]$model
+      } else {
+        if (length(self$learner$errors) > 0) {
+          warning("An error occured during training. Fallback learner was used!")
+          print(self$learner$errors)
+        }
+        if (self$final_model)
+          private$.final_model = self$learner$model[[paste0(self$task$task_type, ".compboost")]]$model
       }
-      if (self$final_model)
-        private$.final_model = self$learner$learner$model[[paste0(self$task$task_type, ".compboost")]]$model # FIXME: change to compboost when implemented
     },
 
     #' @description
@@ -190,11 +199,18 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
       private$.resample_result = mlr3::resample(self$task, self$learner, outer_resampling)
       self$learner = private$.resample_result$learners[[1]]
-      if (length(self$learner$learner$errors) > 0) {
-        warning("An error occured during training. Fallback learner was used!")
-        print(self$learner$learner$errors)
+      if (self$enable_tuning) {
+        if (length(self$learner$learner$errors) > 0) {
+          warning("An error occured during training. Fallback learner was used!")
+          print(self$learner$learner$errors)
+        }
+      } else {
+        if (length(self$learner$errors) > 0) {
+          warning("An error occured during training. Fallback learner was used!")
+          print(self$learner$errors)
+        }
       }
-      return(privat$.resample_result)
+      return(private$.resample_result)
     },
 
     #' @description
@@ -331,7 +347,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       # create graphlearner
       graph_learner = as_learner(pipeline)
 
-      if (!enable_tuning) {
+      if (!self$enable_tuning) {
         return(graph_learner)
       } else {
         # fallback learner is featureless learner for classification / regression
