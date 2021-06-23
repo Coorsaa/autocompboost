@@ -1,8 +1,6 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-    ## /usr/lib64/R/bin/R CMD SHLIB --preclean -o 'sourceCpp_4.so' 'file5cb62ed0f58e.cpp'
-
 # autocompboost
 
 ### Use case
@@ -10,9 +8,9 @@
 ``` r
 # Use adult task from OpenML:
 task = tsk("oml", task_id = 7592)
-#> INFO  [14:33:12.555] Retrieving JSON {url: https://www.openml.org/api/v1/json/task/7592, authenticated: FALSE}
-#> INFO  [14:33:12.756] Retrieving JSON {url: https://www.openml.org/api/v1/json/data/1590, authenticated: FALSE}
-#> INFO  [14:33:12.832] Retrieving ARFF {url: https://www.openml.org/data/v1/download/1595261/adult.arff, authenticated: FALSE}
+#> INFO  [14:40:50.945] Retrieving JSON {url: https://www.openml.org/api/v1/json/task/7592, authenticated: FALSE}
+#> INFO  [14:40:51.147] Retrieving JSON {url: https://www.openml.org/api/v1/json/data/1590, authenticated: FALSE}
+#> INFO  [14:40:51.226] Retrieving ARFF {url: https://www.openml.org/data/v1/download/1595261/adult.arff, authenticated: FALSE}
 
 # Remove rows with missings:
 task$filter(which(complete.cases(task$data())))
@@ -30,42 +28,42 @@ cboost$train(task)
 #>  3750/50000   risk = 0.36  minutes = 0   oob_risk = 0.35   
 #> 
 #> 
-#> Train 4536 iterations in 17 Seconds.
+#> Train 4536 iterations in 15 Seconds.
 #> Final risk based on the train set: 0.36
 #> 
 #>     1/50000   risk = 0.36  minutes = 0   oob_risk = 0.35   
 #> 
 #> 
-#> Train 557 iterations in 13 Seconds.
+#> Train 557 iterations in 11 Seconds.
 #> Final risk based on the train set: 0.35
 #> 
 #> Start risk: 0.3533  test: 0.3413 
 #> Tree 1: train risk: 0.3533 test risk: 0.3413 time: 0 Min. patience: 0
 #> Tree 2: train risk: 0.3533 test risk: 0.3413 time: 0.01 Min. patience: 0
 #> Tree 3: train risk: 0.3533 test risk: 0.3413 time: 0.01 Min. patience: 0
-#> Tree 4: train risk: 0.3533 test risk: 0.3413 time: 0.01 Min. patience: 0
+#> Tree 4: train risk: 0.3533 test risk: 0.3413 time: 0.02 Min. patience: 0
 #> Tree 5: train risk: 0.3533 test risk: 0.3413 time: 0.02 Min. patience: 0
 #> Tree 6: train risk: 0.3533 test risk: 0.3413 time: 0.02 Min. patience: 0
 #> Tree 7: train risk: 0.3533 test risk: 0.3413 time: 0.03 Min. patience: 0
 #> Tree 8: train risk: 0.3533 test risk: 0.3413 time: 0.03 Min. patience: 0
-#> Tree 9: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
+#> Tree 9: train risk: 0.3533 test risk: 0.3413 time: 0.03 Min. patience: 0
 #> Tree 10: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
-#> Tree 11: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
+#> Tree 11: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
 #> Tree 12: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
-#> Tree 13: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
-#> Tree 14: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
-#> Tree 15: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
-#> Tree 16: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
-#> Tree 17: train risk: 0.3533 test risk: 0.3413 time: 0.08 Min. patience: 0
-#> Tree 18: train risk: 0.3533 test risk: 0.3413 time: 0.08 Min. patience: 0
-#> Tree 19: train risk: 0.3533 test risk: 0.3413 time: 0.08 Min. patience: 0
-#> Tree 20: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
-#> Tree 21: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
-#> Tree 22: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 0
-#> Tree 23: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 0
-#> Tree 24: train risk: 0.3534 test risk: 0.3413 time: 0.11 Min. patience: 0
-#> Tree 25: train risk: 0.3534 test risk: 0.3413 time: 0.11 Min. patience: 1
-#> Tree 26: train risk: 0.3534 test risk: 0.3413 time: 0.12 Min. patience: 2
+#> Tree 13: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
+#> Tree 14: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
+#> Tree 15: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
+#> Tree 16: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
+#> Tree 17: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
+#> Tree 18: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
+#> Tree 19: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
+#> Tree 20: train risk: 0.3534 test risk: 0.3413 time: 0.08 Min. patience: 0
+#> Tree 21: train risk: 0.3534 test risk: 0.3413 time: 0.08 Min. patience: 0
+#> Tree 22: train risk: 0.3534 test risk: 0.3413 time: 0.08 Min. patience: 0
+#> Tree 23: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
+#> Tree 24: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
+#> Tree 25: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 1
+#> Tree 26: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 2
 ```
 
 ### Information about the stages:
@@ -99,7 +97,7 @@ ggplot(rstages, aes(x = "", y = percentage, fill = stage)) +
   ggsci::scale_fill_uchicago()
 ```
 
-![](Readme_files/unnamed-chunk-3-1.png)<!-- -->
+![](README-figures/unnamed-chunk-3-1.png)<!-- -->
 
 ### Univariate model
 
@@ -123,7 +121,7 @@ vip = cboost$model$univariate$calculateFeatureImportance(aggregate_bl_by_feat = 
 cboost$model$univariate$plotFeatureImportance(aggregate_bl_by_feat = TRUE)
 ```
 
-![](Readme_files/unnamed-chunk-4-1.png)<!-- -->
+![](README-figures/unnamed-chunk-4-1.png)<!-- -->
 
 #### Partial effects
 
@@ -151,7 +149,7 @@ plotCategorical(c("marital.status", "relationship", "occupation"), pe_cat) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-![](Readme_files/unnamed-chunk-5-1.png)<!-- -->
+![](README-figures/unnamed-chunk-5-1.png)<!-- -->
 
 ``` r
 
@@ -160,7 +158,7 @@ plotNumeric(c("capital.gain", "age", "capital.loss"), pe_numeric) +
   ggsci::scale_color_uchicago()
 ```
 
-![](Readme_files/unnamed-chunk-5-2.png)<!-- -->
+![](README-figures/unnamed-chunk-5-2.png)<!-- -->
 
 ### Pairwise interactions
 
@@ -172,7 +170,7 @@ top_interaction = vip_int$baselearner[1]
 cboost$model$interactions$plotFeatureImportance()
 ```
 
-![](Readme_files/unnamed-chunk-6-1.png)<!-- -->
+![](README-figures/unnamed-chunk-6-1.png)<!-- -->
 
 #### Visualize interaction age\_capital.gain\_tensor
 
@@ -193,4 +191,4 @@ ggplot() +
   geom_rug(data = dat0, aes(x = age, y = capital.gain))
 ```
 
-![](Readme_files/unnamed-chunk-7-1.png)<!-- -->
+![](README-figures/unnamed-chunk-7-1.png)<!-- -->
