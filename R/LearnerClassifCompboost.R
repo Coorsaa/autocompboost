@@ -281,8 +281,11 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       if (! self$param_set$values$add_deeper_interactions) return(out)
 
       # Calculate pseudo residuals from the fitted univariate model:
-      pred_int     = cboost_uni$predict(task$data()) + cboost_int$predict(task$data())
-      pseudo_int   = as.vector(loss$calculatePseudoResiduals(cbind(bin_response), pred_int))
+      pred_int = cboost_uni$predict(task$data())
+      if (! is.null(cboost_int$model))
+        pred_int = pred_int + cboost_int$predict(task$data())
+
+      pseudo_int = as.vector(loss$calculatePseudoResiduals(cbind(bin_response), pred_int))
 
       # Define new task with 'residuals' as target
       df_new$residuals = pseudo_int
