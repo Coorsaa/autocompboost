@@ -88,7 +88,7 @@ arma::mat rowWiseKronecker (const arma::mat& A, const arma::mat& B)
 
   return out;
 }"
-Rcpp::cppFunction(depends = "RcppArmadillo", cpp_fun, rebuild = TRUE, showOutput = TRUE)
+Rcpp::cppFunction(depends = "RcppArmadillo", cpp_fun, rebuild = TRUE, showOutput = FALSE)
 
 predictTensor = function(dat, dato, coef, tnames, n_knots, degree) {
   xo1 = dat[[tnames[1]]]
@@ -113,12 +113,10 @@ predictTensor = function(dat, dato, coef, tnames, n_knots, degree) {
 ### Use case
 
 ```{r}
-# Use airlines task from OpenML:
-#task = tsk("oml", task_id = 189354) # airlines
-#task = tsk("oml", task_id = 31) # credig-g
-#task = tsk("oml", task_id = 14965) # bank-marketing
-task = tsk("oml", task_id = 7592) # adult
+# Use adult task from OpenML:
+task = tsk("oml", task_id = 7592)
 
+# Remove rows with missings:
 task$filter(which(complete.cases(task$data())))
 
 # Train compboost learner:
@@ -129,8 +127,15 @@ cboost = lrn("classif.compboost", predict_type = "prob", show_output = TRUE,
   stop_epsylon_for_break = 0, stop_patience = 3L, df = 4)
 cboost$train(task)
 
+```
+
+### Information about the stages:
+
+```{r, fig.height=2}
 ## How much risk was explained by which stage:
 rstages = cboost$getRiskStages()
+knitr::kable(rstages)
+
 rstages = rstages[-1, ]
 rstages$stage = factor(rstages$stage, levels = rstages$stage)
 ggplot(rstages, aes(x = "", y = percentage, fill = stage)) +
@@ -143,17 +148,22 @@ ggplot(rstages, aes(x = "", y = percentage, fill = stage)) +
   ggtitle("Explained risk per stage") +
   labs(fill = "") +
   ggsci::scale_fill_uchicago()
+```
 
-#### Univariate model:
+### Univariate model
 
+#### Feature importance
+
+```{r}
 ## Feature importance
 cboost$model$univariate$calculateFeatureImportance()
 vip = cboost$model$univariate$calculateFeatureImportance(aggregate_bl_by_feat = TRUE)
-
 cboost$model$univariate$plotFeatureImportance(aggregate_bl_by_feat = TRUE)
+```
 
-## Partial effects:
+#### Partial effects
 
+```{r, fig.height=3}
 coefs = cboost$model$univariate$getEstimatedCoef()
 offset = coefs$offset
 
@@ -179,12 +189,22 @@ plotCategorical(c("marital.status", "relationship", "occupation"), pe_cat) +
 # Visualize numerical features:
 plotNumeric(c("capital.gain", "age", "capital.loss"), pe_numeric) +
   ggsci::scale_color_uchicago()
+```
 
-## Pairwise interactions:
+### Pairwise interactions
+
+
+#### Feature importance
+
+```{r}
 vip_int = cboost$model$interactions$calculateFeatureImportance()
-
 top_interaction = vip_int$baselearner[1]
+cboost$model$interactions$plotFeatureImportance()
+```
 
+#### Visualize interaction `r top_interaction`
+
+```{r}
 coefs_int = cboost$model$interactions$getEstimatedCoef()[[top_interaction]]
 
 dat0 = cboost$model$univariate$data
