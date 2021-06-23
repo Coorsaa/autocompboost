@@ -74,7 +74,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         use_early_stopping = TRUE,
         stop_patience = 6L,
         stop_epsylon_for_break = 1e-7,
-        train_time_total = 10)
+        train_time_total = 120) # Restrict the training to 2 hours
 
       super$initialize(
         id = "classif.compboost",
