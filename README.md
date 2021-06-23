@@ -8,9 +8,9 @@
 ``` r
 # Use adult task from OpenML:
 task = tsk("oml", task_id = 7592)
-#> INFO  [14:40:50.945] Retrieving JSON {url: https://www.openml.org/api/v1/json/task/7592, authenticated: FALSE}
-#> INFO  [14:40:51.147] Retrieving JSON {url: https://www.openml.org/api/v1/json/data/1590, authenticated: FALSE}
-#> INFO  [14:40:51.226] Retrieving ARFF {url: https://www.openml.org/data/v1/download/1595261/adult.arff, authenticated: FALSE}
+#> INFO  [15:28:48.995] Retrieving JSON {url: https://www.openml.org/api/v1/json/task/7592, authenticated: FALSE}
+#> INFO  [15:28:49.239] Retrieving JSON {url: https://www.openml.org/api/v1/json/data/1590, authenticated: FALSE}
+#> INFO  [15:28:49.311] Retrieving ARFF {url: https://www.openml.org/data/v1/download/1595261/adult.arff, authenticated: FALSE}
 
 # Remove rows with missings:
 task$filter(which(complete.cases(task$data())))
@@ -28,13 +28,13 @@ cboost$train(task)
 #>  3750/50000   risk = 0.36  minutes = 0   oob_risk = 0.35   
 #> 
 #> 
-#> Train 4536 iterations in 15 Seconds.
+#> Train 4536 iterations in 17 Seconds.
 #> Final risk based on the train set: 0.36
 #> 
 #>     1/50000   risk = 0.36  minutes = 0   oob_risk = 0.35   
 #> 
 #> 
-#> Train 557 iterations in 11 Seconds.
+#> Train 557 iterations in 12 Seconds.
 #> Final risk based on the train set: 0.35
 #> 
 #> Start risk: 0.3533  test: 0.3413 
@@ -45,25 +45,25 @@ cboost$train(task)
 #> Tree 5: train risk: 0.3533 test risk: 0.3413 time: 0.02 Min. patience: 0
 #> Tree 6: train risk: 0.3533 test risk: 0.3413 time: 0.02 Min. patience: 0
 #> Tree 7: train risk: 0.3533 test risk: 0.3413 time: 0.03 Min. patience: 0
-#> Tree 8: train risk: 0.3533 test risk: 0.3413 time: 0.03 Min. patience: 0
-#> Tree 9: train risk: 0.3533 test risk: 0.3413 time: 0.03 Min. patience: 0
+#> Tree 8: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
+#> Tree 9: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
 #> Tree 10: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
-#> Tree 11: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
+#> Tree 11: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
 #> Tree 12: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
 #> Tree 13: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
-#> Tree 14: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
+#> Tree 14: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
 #> Tree 15: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
-#> Tree 16: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
+#> Tree 16: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
 #> Tree 17: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
-#> Tree 18: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
-#> Tree 19: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
-#> Tree 20: train risk: 0.3534 test risk: 0.3413 time: 0.08 Min. patience: 0
-#> Tree 21: train risk: 0.3534 test risk: 0.3413 time: 0.08 Min. patience: 0
-#> Tree 22: train risk: 0.3534 test risk: 0.3413 time: 0.08 Min. patience: 0
-#> Tree 23: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
-#> Tree 24: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
-#> Tree 25: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 1
-#> Tree 26: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 2
+#> Tree 18: train risk: 0.3533 test risk: 0.3413 time: 0.08 Min. patience: 0
+#> Tree 19: train risk: 0.3533 test risk: 0.3413 time: 0.08 Min. patience: 0
+#> Tree 20: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
+#> Tree 21: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
+#> Tree 22: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
+#> Tree 23: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 0
+#> Tree 24: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 0
+#> Tree 25: train risk: 0.3534 test risk: 0.3413 time: 0.11 Min. patience: 1
+#> Tree 26: train risk: 0.3534 test risk: 0.3413 time: 0.11 Min. patience: 2
 ```
 
 ### Information about the stages:

@@ -73,23 +73,6 @@ plotNumeric = function(feats, pe) {
     facet_wrap(. ~ feature, ncol = 3, scales = "free")
 }
 
-
-### Put in compboostSplines:
-cpp_fun = "
-arma::mat rowWiseKronecker (const arma::mat& A, const arma::mat& B)
-{
-  // Variables
-  arma::mat out;
-  arma::rowvec vecA = arma::rowvec(A.n_cols, arma::fill::ones);
-  arma::rowvec vecB = arma::rowvec(B.n_cols, arma::fill::ones);
-
-  // Multiply both kronecker products element-wise
-  out = arma::kron(A,vecB) % arma::kron(vecA, B);
-
-  return out;
-}"
-Rcpp::cppFunction(depends = "RcppArmadillo", cpp_fun, rebuild = TRUE, showOutput = FALSE)
-
 predictTensor = function(dat, dato, coef, tnames, n_knots, degree) {
   xo1 = dat[[tnames[1]]]
   xo2 = dat[[tnames[2]]]
@@ -98,12 +81,12 @@ predictTensor = function(dat, dato, coef, tnames, n_knots, degree) {
   x2 = dat[[tnames[2]]]
 
   knots1 = compboostSplines::createKnots(values = xo1, n_knots = n_knots, degree = degree)
-  basis1 = compboostSplines::createSplineBasis(values = x1, degree = 3, knots = knots1)
+  basis1 = compboostSplines::createSplineBasis(values = x1, degree = degree, knots = knots1)
 
   knots2 = compboostSplines::createKnots(values = xo2, n_knots = n_knots, degree = degree)
-  basis2 = compboostSplines::createSplineBasis(values = x2, degree = 3, knots = knots2)
+  basis2 = compboostSplines::createSplineBasis(values = x2, degree = degree, knots = knots2)
 
-  tensor = rowWiseKronecker(basis1, basis2)
+  tensor = compboostSplines::rowWiseTensor(basis1, basis2)
   return(tensor %*% coef)
 }
 ```
