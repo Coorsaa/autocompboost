@@ -18,6 +18,7 @@ autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
   if (!is.null(task)) assert_task(task)
 
   pos = list()
+  pos = c(pos, po("removeconstants"))
 
   if (has_type_feats("character")) {
     pos = c(pos, po("colapply", id = "char_to_fct", param_vals = list(affect_columns = selector_type("character"), applicator = function(x) as.factor(x))))
@@ -26,6 +27,10 @@ autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
   if (has_type_feats("logical")) {
     pos = c(pos, po("colapply", id = "lgl_to_fct", param_vals = list(affect_columns = selector_type("logical"), applicator = function(x) as.factor(x))))
   }
+
+  # if (has_type_feats("integer")) {
+    # pos = c(pos, po("colapply", id = "int_to_dbl", param_vals = list(affect_columns = selector_type("integer"), applicator = function(x) as.numeric(x))))
+  # }
 
   if (has_type_feats("POSIXct")) {
     pos = c(pos, po("datefeatures", param_vals = list(affect_columns = selector_type("POSIXct"))))
@@ -63,7 +68,7 @@ autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
       pos = c(pos, po("collapsefactors", param_vals = list(target_level_count = max_cardinality)))
     }
   }
+  pos = c(pos, po("removeconstants", id = "removeconstants_end"))
 
-  pos = c(pos, po("removeconstants"))
   as_graph(Reduce(`%>>%`, pos))
 }
