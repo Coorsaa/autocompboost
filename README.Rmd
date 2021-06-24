@@ -234,8 +234,6 @@ df_plt$bl_num = rev(seq_along(df_plt$blearner))
 fnames = c("offset", "other", task$feature_names)
 fidx = t(do.call(rbind, lapply(fnames, function(feat) grepl(feat, df_plt$blearner))))
 
-apply(fidx, 1, function(idx) fnames[idx])
-
 flab = character(nrow(fidx))
 for (i in seq_len(nrow(fidx))) {
   feats = fnames[fidx[i, ]]
