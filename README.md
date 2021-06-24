@@ -8,9 +8,9 @@
 ``` r
 # Use adult task from OpenML:
 task = tsk("oml", task_id = 7592)
-#> INFO  [15:28:48.995] Retrieving JSON {url: https://www.openml.org/api/v1/json/task/7592, authenticated: FALSE}
-#> INFO  [15:28:49.239] Retrieving JSON {url: https://www.openml.org/api/v1/json/data/1590, authenticated: FALSE}
-#> INFO  [15:28:49.311] Retrieving ARFF {url: https://www.openml.org/data/v1/download/1595261/adult.arff, authenticated: FALSE}
+#> INFO  [10:41:34.267] Retrieving JSON {url: https://www.openml.org/api/v1/json/task/7592, authenticated: FALSE}
+#> INFO  [10:41:34.461] Retrieving JSON {url: https://www.openml.org/api/v1/json/data/1590, authenticated: FALSE}
+#> INFO  [10:41:34.541] Retrieving ARFF {url: https://www.openml.org/data/v1/download/1595261/adult.arff, authenticated: FALSE}
 
 # Remove rows with missings:
 task$filter(which(complete.cases(task$data())))
@@ -28,7 +28,7 @@ cboost$train(task)
 #>  3750/50000   risk = 0.36  minutes = 0   oob_risk = 0.35   
 #> 
 #> 
-#> Train 4536 iterations in 17 Seconds.
+#> Train 4536 iterations in 15 Seconds.
 #> Final risk based on the train set: 0.36
 #> 
 #>     1/50000   risk = 0.36  minutes = 0   oob_risk = 0.35   
@@ -39,31 +39,31 @@ cboost$train(task)
 #> 
 #> Start risk: 0.3533  test: 0.3413 
 #> Tree 1: train risk: 0.3533 test risk: 0.3413 time: 0 Min. patience: 0
-#> Tree 2: train risk: 0.3533 test risk: 0.3413 time: 0.01 Min. patience: 0
+#> Tree 2: train risk: 0.3533 test risk: 0.3413 time: 0 Min. patience: 0
 #> Tree 3: train risk: 0.3533 test risk: 0.3413 time: 0.01 Min. patience: 0
-#> Tree 4: train risk: 0.3533 test risk: 0.3413 time: 0.02 Min. patience: 0
+#> Tree 4: train risk: 0.3533 test risk: 0.3413 time: 0.01 Min. patience: 0
 #> Tree 5: train risk: 0.3533 test risk: 0.3413 time: 0.02 Min. patience: 0
 #> Tree 6: train risk: 0.3533 test risk: 0.3413 time: 0.02 Min. patience: 0
 #> Tree 7: train risk: 0.3533 test risk: 0.3413 time: 0.03 Min. patience: 0
-#> Tree 8: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
-#> Tree 9: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
+#> Tree 8: train risk: 0.3533 test risk: 0.3413 time: 0.03 Min. patience: 0
+#> Tree 9: train risk: 0.3533 test risk: 0.3413 time: 0.03 Min. patience: 0
 #> Tree 10: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
-#> Tree 11: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
+#> Tree 11: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
 #> Tree 12: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
 #> Tree 13: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
-#> Tree 14: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
+#> Tree 14: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
 #> Tree 15: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
-#> Tree 16: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
-#> Tree 17: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
-#> Tree 18: train risk: 0.3533 test risk: 0.3413 time: 0.08 Min. patience: 0
-#> Tree 19: train risk: 0.3533 test risk: 0.3413 time: 0.08 Min. patience: 0
-#> Tree 20: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
-#> Tree 21: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
-#> Tree 22: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
-#> Tree 23: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 0
-#> Tree 24: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 0
-#> Tree 25: train risk: 0.3534 test risk: 0.3413 time: 0.11 Min. patience: 1
-#> Tree 26: train risk: 0.3534 test risk: 0.3413 time: 0.11 Min. patience: 2
+#> Tree 16: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
+#> Tree 17: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
+#> Tree 18: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
+#> Tree 19: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
+#> Tree 20: train risk: 0.3534 test risk: 0.3413 time: 0.08 Min. patience: 0
+#> Tree 21: train risk: 0.3534 test risk: 0.3413 time: 0.08 Min. patience: 0
+#> Tree 22: train risk: 0.3534 test risk: 0.3413 time: 0.08 Min. patience: 0
+#> Tree 23: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
+#> Tree 24: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
+#> Tree 25: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 1
+#> Tree 26: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 2
 ```
 
 ### Information about the stages:
@@ -154,7 +154,7 @@ plotCategorical(c("marital.status", "relationship", "occupation"), pe_cat) +
 ``` r
 
 # Visualize numerical features:
-plotNumeric(c("capital.gain", "age", "capital.loss"), pe_numeric) +
+plotNumeric(c("education.num", "capital.gain", "age"), pe_numeric) +
   ggsci::scale_color_uchicago()
 ```
 
@@ -192,3 +192,123 @@ ggplot() +
 ```
 
 ![](README-figures/unnamed-chunk-7-1.png)<!-- -->
+
+#### Prediction decomposition
+
+``` r
+# "new observation"
+newdata = task$data()[1234,]
+
+p_uni = cboost$model$univariate$predictIndividual(newdata)
+p_int = cboost$model$interactions$predictIndividual(newdata)
+p_int$offset = NULL
+
+df_new = newdata
+df_new$residuals = 0
+tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
+p_trees = predict.residualBooster(cboost$model$deeper_interactions, tsk_new)
+
+
+
+p = c(p_uni, p_int, other = p_trees)
+
+df_plt = data.frame(blearner = names(p), value = unlist(p),
+  stage = rep(c("Univariate", "Pairwise interactions", "Deep trees"), times = c(length(p_uni), length(p_int), 1)))
+df_plt$blearner = factor(df_plt$blearner, levels = rev(df_plt$blearner))
+df_plt$stage = factor(df_plt$stage, levels = c("Univariate", "Pairwise interactions", "Deep trees"))
+df_plt$bl_num = rev(seq_along(df_plt$blearner))
+
+fnames = c("offset", "other", task$feature_names)
+fidx = t(do.call(rbind, lapply(fnames, function(feat) grepl(feat, df_plt$blearner))))
+
+apply(fidx, 1, function(idx) fnames[idx])
+#> [[1]]
+#> [1] "age"
+#> 
+#> [[2]]
+#> [1] "age"
+#> 
+#> [[3]]
+#> [1] "capital.gain"
+#> 
+#> [[4]]
+#> [1] "capital.gain"
+#> 
+#> [[5]]
+#> [1] "capital.loss"
+#> 
+#> [[6]]
+#> [1] "education"     "education.num"
+#> 
+#> [[7]]
+#> [1] "hours.per.week"
+#> 
+#> [[8]]
+#> [1] "marital.status"
+#> 
+#> [[9]]
+#> [1] "occupation"
+#> 
+#> [[10]]
+#> [1] "offset"
+#> 
+#> [[11]]
+#> [1] "relationship"
+#> 
+#> [[12]]
+#> [1] "age"          "capital.gain"
+#> 
+#> [[13]]
+#> [1] "age"          "capital.loss"
+#> 
+#> [[14]]
+#> [1] "age"           "education"     "education.num"
+#> 
+#> [[15]]
+#> [1] "capital.gain"  "education"     "education.num"
+#> 
+#> [[16]]
+#> [1] "capital.gain"   "hours.per.week"
+#> 
+#> [[17]]
+#> [1] "other"
+
+flab = character(nrow(fidx))
+for (i in seq_len(nrow(fidx))) {
+  feats = fnames[fidx[i, ]]
+
+  if (length(feats) > 2) {
+    df_char = data.frame(f = feats, n = nchar(feats))
+    df_char = df_char[order(df_char$n, decreasing = TRUE), ]
+    df_char$count = sapply(df_char$f, function(fn) sum(grepl(fn, df_char$f)))
+    feats = df_char$f[df_char$count == 1]
+  }
+  if (length(feats) == 2)
+    flab[i] = paste0("Interaction: ", paste(feats, collapse = ", "))
+  else
+    flab[i] = feats
+}
+flab[flab == "other"] = "Deep trees"
+df_plt$feat = flab
+df_plt0 = df_plt %>%
+  group_by(feat) %>%
+  summarize(value = sum(value), stage = stage[1]) %>%
+  ungroup() %>%
+  arrange(desc(stage)) %>%
+  mutate(bl_num = seq_along(value))
+
+ggplot(df_plt0, aes(x = value, y = bl_num, color = stage, fill = stage)) +
+  geom_vline(xintercept = 0, color = "dark grey", alpha = 0.6) +
+  geom_segment(aes(xend = 0, yend = bl_num)) +
+  geom_point() +
+  ylab("") +
+  xlab("Contribution to predicted value") +
+  labs(color = "", fill = "") +
+  ggsci::scale_fill_uchicago() +
+  ggsci::scale_color_uchicago() +
+  #scale_y_reverse() +
+  scale_y_continuous(labels = df_plt0$feat, breaks = df_plt0$bl_num) +
+  theme_minimal()
+```
+
+![](README-figures/unnamed-chunk-8-1.png)<!-- -->

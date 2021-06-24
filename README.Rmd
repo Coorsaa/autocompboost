@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 
 devtools::load_all(quiet = TRUE)
 library(ggplot2, quietly = TRUE)
+library(dplyr, quietly = TRUE)
 
 ### Need to put this directly in compboost:
 predict.compboostExtract = function(object, newdata) {
@@ -109,7 +110,6 @@ cboost = lrn("classif.compboost", predict_type = "prob", show_output = TRUE,
   learning_rate_deeper_interactions = 0.01, add_deeper_interactions = TRUE,
   stop_epsylon_for_break = 0, stop_patience = 3L, df = 4)
 cboost$train(task)
-
 ```
 
 ### Information about the stages:
@@ -170,7 +170,7 @@ plotCategorical(c("marital.status", "relationship", "occupation"), pe_cat) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Visualize numerical features:
-plotNumeric(c("capital.gain", "age", "capital.loss"), pe_numeric) +
+plotNumeric(c("education.num", "capital.gain", "age"), pe_numeric) +
   ggsci::scale_color_uchicago()
 ```
 
@@ -204,4 +204,74 @@ ggplot() +
   geom_rug(data = dat0, aes(x = age, y = capital.gain))
 ```
 
+#### Prediction decomposition
 
+
+
+```{r, fig.height=3}
+# "new observation"
+newdata = task$data()[1234,]
+
+p_uni = cboost$model$univariate$predictIndividual(newdata)
+p_int = cboost$model$interactions$predictIndividual(newdata)
+p_int$offset = NULL
+
+df_new = newdata
+df_new$residuals = 0
+tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
+p_trees = predict.residualBooster(cboost$model$deeper_interactions, tsk_new)
+
+
+
+p = c(p_uni, p_int, other = p_trees)
+
+df_plt = data.frame(blearner = names(p), value = unlist(p),
+  stage = rep(c("Univariate", "Pairwise interactions", "Deep trees"), times = c(length(p_uni), length(p_int), 1)))
+df_plt$blearner = factor(df_plt$blearner, levels = rev(df_plt$blearner))
+df_plt$stage = factor(df_plt$stage, levels = c("Univariate", "Pairwise interactions", "Deep trees"))
+df_plt$bl_num = rev(seq_along(df_plt$blearner))
+
+fnames = c("offset", "other", task$feature_names)
+fidx = t(do.call(rbind, lapply(fnames, function(feat) grepl(feat, df_plt$blearner))))
+
+apply(fidx, 1, function(idx) fnames[idx])
+
+flab = character(nrow(fidx))
+for (i in seq_len(nrow(fidx))) {
+  feats = fnames[fidx[i, ]]
+
+  if (length(feats) > 2) {
+    df_char = data.frame(f = feats, n = nchar(feats))
+    df_char = df_char[order(df_char$n, decreasing = TRUE), ]
+    df_char$count = sapply(df_char$f, function(fn) sum(grepl(fn, df_char$f)))
+    feats = df_char$f[df_char$count == 1]
+  }
+  if (length(feats) == 2)
+    flab[i] = paste0("Interaction: ", paste(feats, collapse = ", "))
+  else
+    flab[i] = feats
+}
+flab[flab == "other"] = "Deep trees"
+df_plt$feat = flab
+df_plt0 = df_plt %>%
+  group_by(feat) %>%
+  summarize(value = sum(value), stage = stage[1]) %>%
+  ungroup() %>%
+  arrange(desc(stage)) %>%
+  mutate(bl_num = seq_along(value))
+
+ggplot(df_plt0, aes(x = value, y = bl_num, color = stage, fill = stage)) +
+  geom_vline(xintercept = 0, color = "dark grey", alpha = 0.6) +
+  geom_segment(aes(xend = 0, yend = bl_num)) +
+  geom_point() +
+  ylab("") +
+  xlab("Contribution to predicted value") +
+  labs(color = "", fill = "") +
+  ggsci::scale_fill_uchicago() +
+  ggsci::scale_color_uchicago() +
+  #scale_y_reverse() +
+  scale_y_continuous(labels = df_plt0$feat, breaks = df_plt0$bl_num) +
+  theme_minimal()
+
+
+```
