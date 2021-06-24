@@ -8,7 +8,8 @@ output: github_document
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "README-figures/"
+  fig.path = "README-figures/",
+  warnings = FALSE
 )
 
 #q()
@@ -106,8 +107,7 @@ task$filter(which(complete.cases(task$data())))
 # Train compboost learner:
 set.seed(31415)
 cboost = lrn("classif.compboost", predict_type = "prob", show_output = TRUE,
-  learning_rate_univariate = 0.01, learning_rate_interactions = 0.01,
-  learning_rate_deeper_interactions = 0.01, add_deeper_interactions = TRUE,
+  learning_rate = 0.01, add_deeper_interactions = TRUE,
   stop_epsylon_for_break = 0, stop_patience = 3L, df = 4)
 cboost$train(task)
 ```
@@ -211,6 +211,8 @@ ggplot() +
 ```{r, fig.height=3}
 # "new observation"
 newdata = task$data()[1234,]
+newdata$class = NULL
+knitr::kable(t(newdata))
 
 p_uni = cboost$model$univariate$predictIndividual(newdata)
 p_int = cboost$model$interactions$predictIndividual(newdata)
@@ -238,12 +240,22 @@ flab = character(nrow(fidx))
 for (i in seq_len(nrow(fidx))) {
   feats = fnames[fidx[i, ]]
 
-  if (length(feats) > 2) {
+  if (length(feats) > 1) {
     df_char = data.frame(f = feats, n = nchar(feats))
     df_char = df_char[order(df_char$n, decreasing = TRUE), ]
     df_char$count = sapply(df_char$f, function(fn) sum(grepl(fn, df_char$f)))
     feats = df_char$f[df_char$count == 1]
   }
+  feats = vapply(feats, function(f) {
+    if (f %in% c("other", "offset")) return(f)
+
+    fval = newdata[[f]]
+    if (is.numeric(fval))
+      return(paste0(f, " (", round(fval, 2), ")"))
+    else
+      return(paste0(f, " (", fval, ")"))
+  }, character(1L))
+
   if (length(feats) == 2)
     flab[i] = paste0("Interaction: ", paste(feats, collapse = ", "))
   else
@@ -258,6 +270,13 @@ df_plt0 = df_plt %>%
   arrange(desc(stage)) %>%
   mutate(bl_num = seq_along(value))
 
+pred = sum(df_plt0$value)
+prob = 1 / (1 + exp(-pred))
+plabel = ifelse(prob > 0.5, task$positive, task$negative)
+
+title = "Prediction"
+subtitle = paste0("Score: ", round(pred, 2), " Probability: ", round(prob, 2), " Predicted label: ", plabel)
+
 ggplot(df_plt0, aes(x = value, y = bl_num, color = stage, fill = stage)) +
   geom_vline(xintercept = 0, color = "dark grey", alpha = 0.6) +
   geom_segment(aes(xend = 0, yend = bl_num)) +
@@ -269,7 +288,7 @@ ggplot(df_plt0, aes(x = value, y = bl_num, color = stage, fill = stage)) +
   ggsci::scale_color_uchicago() +
   #scale_y_reverse() +
   scale_y_continuous(labels = df_plt0$feat, breaks = df_plt0$bl_num) +
-  theme_minimal()
-
+  theme_minimal() +
+  ggtitle(title, subtitle)
 
 ```

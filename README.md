@@ -1,25 +1,6 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-    ## 
-    ## Attaching package: 'dplyr'
-
-    ## The following objects are masked from 'package:autocompboost':
-    ## 
-    ##     between, first, last, matches
-
-    ## The following object is masked from 'package:testthat':
-    ## 
-    ##     matches
-
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     filter, lag
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     intersect, setdiff, setequal, union
-
 # autocompboost
 
 ### Use case
@@ -27,9 +8,9 @@
 ``` r
 # Use adult task from OpenML:
 task = tsk("oml", task_id = 7592)
-#> INFO  [10:48:04.023] Retrieving JSON {url: https://www.openml.org/api/v1/json/task/7592, authenticated: FALSE}
-#> INFO  [10:48:09.299] Retrieving JSON {url: https://www.openml.org/api/v1/json/data/1590, authenticated: FALSE}
-#> INFO  [10:48:09.378] Retrieving ARFF {url: https://www.openml.org/data/v1/download/1595261/adult.arff, authenticated: FALSE}
+#> INFO  [12:00:05.443] Retrieving JSON {url: https://www.openml.org/api/v1/json/task/7592, authenticated: FALSE}
+#> INFO  [12:00:05.749] Retrieving JSON {url: https://www.openml.org/api/v1/json/data/1590, authenticated: FALSE}
+#> INFO  [12:00:05.853] Retrieving ARFF {url: https://www.openml.org/data/v1/download/1595261/adult.arff, authenticated: FALSE}
 
 # Remove rows with missings:
 task$filter(which(complete.cases(task$data())))
@@ -37,8 +18,7 @@ task$filter(which(complete.cases(task$data())))
 # Train compboost learner:
 set.seed(31415)
 cboost = lrn("classif.compboost", predict_type = "prob", show_output = TRUE,
-  learning_rate_univariate = 0.01, learning_rate_interactions = 0.01,
-  learning_rate_deeper_interactions = 0.01, add_deeper_interactions = TRUE,
+  learning_rate = 0.01, add_deeper_interactions = TRUE,
   stop_epsylon_for_break = 0, stop_patience = 3L, df = 4)
 cboost$train(task)
 #>     1/50000   risk = 0.56  minutes = 0   oob_risk = 0.56   
@@ -53,7 +33,7 @@ cboost$train(task)
 #>     1/50000   risk = 0.36  minutes = 0   oob_risk = 0.35   
 #> 
 #> 
-#> Train 557 iterations in 13 Seconds.
+#> Train 557 iterations in 10 Seconds.
 #> Final risk based on the train set: 0.35
 #> 
 #> Start risk: 0.3533  test: 0.3413 
@@ -67,16 +47,16 @@ cboost$train(task)
 #> Tree 8: train risk: 0.3533 test risk: 0.3413 time: 0.03 Min. patience: 0
 #> Tree 9: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
 #> Tree 10: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
-#> Tree 11: train risk: 0.3533 test risk: 0.3413 time: 0.04 Min. patience: 0
+#> Tree 11: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
 #> Tree 12: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
-#> Tree 13: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
+#> Tree 13: train risk: 0.3533 test risk: 0.3413 time: 0.05 Min. patience: 0
 #> Tree 14: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
 #> Tree 15: train risk: 0.3533 test risk: 0.3413 time: 0.06 Min. patience: 0
 #> Tree 16: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
 #> Tree 17: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
-#> Tree 18: train risk: 0.3533 test risk: 0.3413 time: 0.08 Min. patience: 0
+#> Tree 18: train risk: 0.3533 test risk: 0.3413 time: 0.07 Min. patience: 0
 #> Tree 19: train risk: 0.3533 test risk: 0.3413 time: 0.08 Min. patience: 0
-#> Tree 20: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
+#> Tree 20: train risk: 0.3534 test risk: 0.3413 time: 0.08 Min. patience: 0
 #> Tree 21: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
 #> Tree 22: train risk: 0.3534 test risk: 0.3413 time: 0.09 Min. patience: 0
 #> Tree 23: train risk: 0.3534 test risk: 0.3413 time: 0.1 Min. patience: 0
@@ -217,6 +197,28 @@ ggplot() +
 ``` r
 # "new observation"
 newdata = task$data()[1234,]
+newdata$class = NULL
+knitr::kable(t(newdata))
+```
+
+|                |                |
+| :------------- | :------------- |
+| age            | 42             |
+| capital.gain   | 0              |
+| capital.loss   | 0              |
+| education      | Assoc-acdm     |
+| education.num  | 12             |
+| fnlwgt         | 478373         |
+| hours.per.week | 40             |
+| marital.status | Divorced       |
+| native.country | United-States  |
+| occupation     | Prof-specialty |
+| race           | White          |
+| relationship   | Not-in-family  |
+| sex            | Female         |
+| workclass      | Private        |
+
+``` r
 
 p_uni = cboost$model$univariate$predictIndividual(newdata)
 p_int = cboost$model$interactions$predictIndividual(newdata)
@@ -244,12 +246,22 @@ flab = character(nrow(fidx))
 for (i in seq_len(nrow(fidx))) {
   feats = fnames[fidx[i, ]]
 
-  if (length(feats) > 2) {
+  if (length(feats) > 1) {
     df_char = data.frame(f = feats, n = nchar(feats))
     df_char = df_char[order(df_char$n, decreasing = TRUE), ]
     df_char$count = sapply(df_char$f, function(fn) sum(grepl(fn, df_char$f)))
     feats = df_char$f[df_char$count == 1]
   }
+  feats = vapply(feats, function(f) {
+    if (f %in% c("other", "offset")) return(f)
+
+    fval = newdata[[f]]
+    if (is.numeric(fval))
+      return(paste0(f, " (", round(fval, 2), ")"))
+    else
+      return(paste0(f, " (", fval, ")"))
+  }, character(1L))
+
   if (length(feats) == 2)
     flab[i] = paste0("Interaction: ", paste(feats, collapse = ", "))
   else
@@ -264,6 +276,13 @@ df_plt0 = df_plt %>%
   arrange(desc(stage)) %>%
   mutate(bl_num = seq_along(value))
 
+pred = sum(df_plt0$value)
+prob = 1 / (1 + exp(-pred))
+plabel = ifelse(prob > 0.5, task$positive, task$negative)
+
+title = "Prediction"
+subtitle = paste0("Score: ", round(pred, 2), " Probability: ", round(prob, 2), " Predicted label: ", plabel)
+
 ggplot(df_plt0, aes(x = value, y = bl_num, color = stage, fill = stage)) +
   geom_vline(xintercept = 0, color = "dark grey", alpha = 0.6) +
   geom_segment(aes(xend = 0, yend = bl_num)) +
@@ -275,7 +294,8 @@ ggplot(df_plt0, aes(x = value, y = bl_num, color = stage, fill = stage)) +
   ggsci::scale_color_uchicago() +
   #scale_y_reverse() +
   scale_y_continuous(labels = df_plt0$feat, breaks = df_plt0$bl_num) +
-  theme_minimal()
+  theme_minimal() +
+  ggtitle(title, subtitle)
 ```
 
 ![](README-figures/unnamed-chunk-8-1.png)<!-- -->
