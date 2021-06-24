@@ -9,8 +9,9 @@ autocompboost_default_params = function(task_type) {
   if (task_type == "classif") {
     return(
       ps(
-        classif.compboost.learning_rate_univariate = p_dbl(lower = 1e-4, upper = 0.5, tags = "budget"),
-        classif.compboost.learning_rate_interactions = p_dbl(lower = 1e-4, upper = 0.5),
+        #classif.compboost.learning_rate_univariate = p_dbl(lower = 1e-4, upper = 0.5, tags = "budget"),
+        #classif.compboost.learning_rate_interactions = p_dbl(lower = 1e-4, upper = 0.5),
+        classif.compboost.learning_rate = p_dbl(lower = 1e-4, upper = 0.5),
         classif.compboost.top_interactions = p_dbl(lower = 0.01, upper = 0.2)
       )
     )

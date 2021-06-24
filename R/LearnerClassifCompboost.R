@@ -26,8 +26,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           ParamDbl$new(id = "df_cat", default = 4, lower = 1),
           ParamInt$new(id = "iters_max_univariate", default = 10000L, lower = 1L),
           ParamInt$new(id = "iters_max_interactions", default = 10000L, lower = 1L),
-          ParamDbl$new(id = "learning_rate_univariate", default = 0.01, lower = 0),
-          ParamDbl$new(id = "learning_rate_interactions", default = 0.1, lower = 0),
+          #ParamDbl$new(id = "learning_rate_univariate", default = 0.01, lower = 0),
+          #ParamDbl$new(id = "learning_rate_interactions", default = 0.1, lower = 0),
           ParamDbl$new(id = "n_knots_univariate", default = 20L, lower = 4),
           ParamDbl$new(id = "n_knots_interactions", default = 10L, lower = 4),
           ParamLgl$new(id = "use_components", default = TRUE),
@@ -42,9 +42,10 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           ParamLgl$new(id = "just_univariate", default = FALSE),
           ParamLgl$new(id = "add_deeper_interactions", default = FALSE),
           ParamInt$new(id = "iters_deeper_interactions", default = 500, lower = 0),
-          ParamDbl$new(id = "learning_rate_deeper_interactions", default = 0.2, lower = 0, upper = 1),
+          #ParamDbl$new(id = "learning_rate_deeper_interactions", default = 0.2, lower = 0, upper = 1),
           ParamInt$new(id = "train_time_total", default = 0, lower = 0),
-          ParamInt$new(id = "n_threshold_binning", default = 4900, lower = 0)
+          ParamInt$new(id = "n_threshold_binning", default = 4900, lower = 0),
+          ParamDbl$new(id = "learning_rate", default = 0.01, lower = 0)
         ))
       ps$values = list(
         # General pars:
@@ -52,23 +53,24 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         n_threshold_binning = 4000L,
         use_components = TRUE,
         show_output = FALSE,
+        learning_rate = 0.01,
 
         # Univariate model:
-        learning_rate_univariate = 0.1,
+        #learning_rate_univariate = 0.1,
         n_knots_univariate = 15,
         iters_max_univariate = 50000L,
 
         # Interaction model (tensor splines):
         just_univariate = FALSE,
         top_interactions = 0.02,
-        learning_rate_interactions = 0.15,
+        #learning_rate_interactions = 0.15,
         n_knots_interactions = 8,
         iters_max_interactions = 50000L,
 
         # Control deeper interactions (trees):
         add_deeper_interactions = FALSE,
         iters_deeper_interactions = 500L,
-        learning_rate_deeper_interactions = 0.15,
+        #learning_rate_deeper_interactions = 0.15,
 
         # Control early stopping:
         use_early_stopping = TRUE,
@@ -169,7 +171,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         loss = compboost::LossBinomial$new()
 
         cboost_uni = Compboost$new(data = task$data(), target = task$target_names,
-          loss = loss, learning_rate = self$param_set$values$learning_rate_univariate,
+          loss = loss, learning_rate = self$param_set$values$learning_rate,
+          #loss = loss, learning_rate = self$param_set$values$learning_rate_univariate,
           optimizer = optimizer, test_idx = test_idx, stop_args = stop_args,
           use_early_stopping = self$param_set$values$use_early_stopping)
 
@@ -271,7 +274,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
       ### Define interaction model based on tensor splines:
       cboost_int = Compboost$new(data = task$data(), target = task$target_names, loss = loss_int_inbag,
-        learning_rate = self$param_set$values$learning_rate_interactions, optimizer = optimizer_int,
+        #learning_rate = self$param_set$values$learning_rate_interactions, optimizer = optimizer_int,
+        learning_rate = self$param_set$values$learning_rate, optimizer = optimizer_int,
         test_idx = test_idx, stop_args = c(stop_args, loss_oob = loss_int_oob),
         use_early_stopping = self$param_set$values$use_early_stopping)
 
@@ -335,7 +339,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       df_new$residuals = pseudo_int
       tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
 
-      residual_booster = boostRpart(tsk_new, lr = self$param_set$values$learning_rate_deeper_interactions,
+      #residual_booster = boostRpart(tsk_new, lr = self$param_set$values$learning_rate_deeper_interactions,
+      residual_booster = boostRpart(tsk_new, lr = self$param_set$values$learning_rate,
         iters = self$param_set$values$iters_deeper_interactions,
         patience = stop_args$patience, eps_for_break = stop_args$eps_for_break,
         use_es = self$param_set$values$use_early_stopping, idx_train = train_idx,
