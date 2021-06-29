@@ -111,8 +111,11 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       self$tuning_iters = assert_number(tuning_iters, lower = 0)
       check_subset(tuning_method, choices = c("mbo", "hyperband", "smash"))
       self$tuning_method = assert_character(tuning_method, len = 1)
-
-      self$tuning_terminator = trm("run_time", secs = self$tuning_time)
+      if (self$tuning_method == "hyperband") {
+        self$tuning_terminator = trm("none")
+      } else {
+        self$tuning_terminator = trm("run_time", secs = self$tuning_time)
+      }
       # self$tuning_terminator = trm("combo", list(
       #   trm("run_time", secs = self$tuning_time),
       #   trm("evals", n_evals = self$tuning_iters)
@@ -320,10 +323,14 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     .resample_result = NULL,
     .create_learner = function(param_values = NULL) {
       # get preproc pipeline
-      if (self$task$task_type == "classif") {
-        pipeline = autocompboost_preproc_pipeline(self$task, max_cardinality = 1000) %>>% po("subsample", stratify = TRUE)
+      if(self$tuning_method == "hyperband") {
+        if (self$task$task_type == "classif") {
+          pipeline = autocompboost_preproc_pipeline(self$task, max_cardinality = 1000) %>>% po("subsample", stratify = TRUE)
+        } else {
+          pipeline = autocompboost_preproc_pipeline(self$task, max_cardinality = 1000) %>>% po("subsample")
+        }
       } else {
-        pipeline = autocompboost_preproc_pipeline(self$task, max_cardinality = 1000) %>>% po("subsample")
+          pipeline = autocompboost_preproc_pipeline(self$task, max_cardinality = 1000)
       }
 
       # compboost learner
@@ -356,7 +363,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         # takes too long
         # graph_learner$encapsulate = c(train = "callr", predict = "callr")
 
-        param_set = autocompboost_default_params(self$task$task_type)
+        param_set = autocompboost_default_params(self$task$task_type, self$tuning_method)
 
         # FIXME: use hard timeout from mlr3automl here?
         # if (is.finite(self$tuning_time)) {
