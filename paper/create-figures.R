@@ -506,7 +506,7 @@ getDiffToBest = function(score, type) {
   abs(score -  score[idx_w]) / abs(score_best - score[idx_w])
 }
 
-dat = read.csv("~/Downloads/final_scores.csv")
+dat = read.csv("final_scores.csv")
 dat = dat %>% filter(! task_id %in% c(9981, 168332, 168910, 168868, 34539, 189354, 189356, 7593))
 
 fmap = c("AutoCWB (no HPO)", "AutoCWB (Deep, no HPO)", "glmnet", "AutoCWB", "AutoCWB (Deep)",
@@ -562,8 +562,13 @@ dat_plt = dat_plt %>% filter(is.finite(sdiff), ! is.nan(sdiff))
   #"autoweka" = "Auto-WEKA"
 #)
 
+dat_all = rbind(expand.grid(x = ttab1, y = ftab, ptype = "Binary classification"),
+  expand.grid(x = ttab2, y = ftab, ptype = "Multiclass classification"))
+
 gg_bm = ggplot() +
-  geom_tile(data = dat_plt, aes(y = framework_num, x = task_num, fill = sdiff), width = 0.95) +
+  geom_tile(data = dat_all, aes(x = x, y = y), fill = "gray", width = 0.95) +
+  geom_text(data = dat_all, aes(x = x, y = y), label = "NA", size = 0.95) +
+  geom_tile(data = dat_plt, aes(x = task_num, y = framework_num, fill = sdiff), width = 0.95) +
   geom_tile(data = dat_plt %>% filter(best == "best"), aes(y = framework_num, x = task_num), fill = "#EE9A00", width = 0.95) +
   #geom_text(data = dat_plt, aes(x = task_num, y = framework_num, label = round(score, 2)), size = 1.5) +
   #geom_text(data = dat_plt %>% filter(best == "best"), aes(x = task_num, y = framework_num, label = round(score, 2)),
@@ -571,7 +576,7 @@ gg_bm = ggplot() +
   scale_y_continuous(breaks = unique(dat_plt$framework_num), labels = unique(dat_plt$framework)) +
   xlab("") +
   ylab("") +
-  labs(fill = "Placement between best (1)\nand worst (0) model") +
+  labs(fill = "Relative performance\n(1 = best, 0 = worst)") +
   colorspace::scale_fill_continuous_sequential(palette = "Greens", rev = TRUE) +
   #colorspace::scale_fill_continuous_sequential(palette = "Viridis") +
   facetscales::facet_grid_sc(cols = vars(ptype), scales = list(x = scales_x)) +
@@ -590,7 +595,7 @@ gg_bm = ggplot() +
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 6),
     legend.position = "bottom"
   )
-#gg_bm
+gg_bm
 ggsave(
   plot = gg_bm,
   filename = "figures/fig-bm.pdf",
