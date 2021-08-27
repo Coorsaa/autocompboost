@@ -20,6 +20,23 @@ autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
   pos = list()
   pos = c(pos, po("removeconstants"))
 
+  # recode hidden missings
+  pos = c(pos, po("colapply", id = "recode_hidden_missings", param_vals = list(affect_columns = selector_type(c("numeric", "integer")),
+    applicator = function(x) {
+      x[x == -999] = NA
+      return(x)
+    }
+  )))
+
+  # remove outliers
+  # pos = c(pos, po("colapply", id = "remove_outliers", param_vals = list(affect_columns = selector_type(c("numeric", "integer")),
+  #   applicator = function(x) {
+  #     x[abs(x) > 3 * sd(x)] = NA
+  #     return(x)
+  #   }
+  # )))
+
+
   if (has_type_feats("character")) {
     pos = c(pos, po("colapply", id = "char_to_fct", param_vals = list(affect_columns = selector_type("character"), applicator = function(x) as.factor(x))))
   }
@@ -55,7 +72,7 @@ autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
   }
 
   # Ensure all factor levels are encoded during predict FIXME: should we sample those or drop features with NA ratio above x%?
-  if (sum(task$missings()) > 0 && has_type_feats(c("factor", "ordered", "character"))) {
+  if (has_type_feats(c("factor", "ordered", "character"))) {
     pos = c(pos, po("imputesample", affect_columns = selector_type(c("factor", "ordered", "character"))))
   }
 
