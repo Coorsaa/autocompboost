@@ -56,7 +56,7 @@ autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
   if (has_type_feats(c("numeric", "integer"))) {
     pos = c(pos,
       gunion(list(
-        po("imputehist"),
+        po("imputehist", affect_columns = selector_type(c("numeric", "integer"))),
         po("missind", param_vals = list(affect_columns = selector_type(c("numeric", "integer")), type = "factor")))) %>>%
       po("featureunion"))
   }
