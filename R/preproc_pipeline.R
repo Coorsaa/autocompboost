@@ -53,7 +53,7 @@ autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
     pos = c(pos, po("datefeatures", param_vals = list(affect_columns = selector_type("POSIXct"))))
   }
 
-  if (sum(task$missings()) > 0 && has_type_feats(c("numeric", "integer"))) {
+  if (has_type_feats(c("numeric", "integer"))) {
     pos = c(pos,
       gunion(list(
         po("imputehist"),
@@ -62,8 +62,8 @@ autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
   }
 
   # Impute factors
-  if (sum(task$missings()) > 0 && has_type_feats(c("factor", "ordered", "character"))) {
-    pos = c(pos, po("imputemode"))
+  if (has_type_feats(c("factor", "ordered", "character"))) {
+    pos = c(pos, po("imputesample", affect_columns = selector_type(c("factor", "ordered", "character"))))
   }
 
   # Fix extra factor levels
