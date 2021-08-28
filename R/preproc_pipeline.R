@@ -73,7 +73,7 @@ autocompboost_preproc_pipeline = function(task, max_cardinality = 100) {
 
   # Ensure all factor levels are encoded during predict FIXME: should we sample those or drop features with NA ratio above x%?
   if (has_type_feats(c("factor", "ordered", "character"))) {
-    pos = c(pos, po("imputesample", affect_columns = selector_type(c("factor", "ordered", "character"))))
+    pos = c(pos, po("imputesample", id = "imputesample_after_fixfactors", affect_columns = selector_type(c("factor", "ordered", "character"))))
   }
 
   # Collapse factors over 1000 levels

@@ -125,7 +125,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       if (tuning_method == "mbo") {
         self$tuner = tnr("intermbo")
       } else if (tuning_method == "hyperband") {
-        self$tuner = tnr("hyperband", eta = 3L)
+        self$tuner = tnr("hyperband", eta = 1.15)
       } else if (tuning_method == "smash") {
         # imputepl = po("imputeoor", offset = 1, multiplier = 10) %>>% po("fixfactors") %>>% po("imputesample")
         # learnerlist = list(
