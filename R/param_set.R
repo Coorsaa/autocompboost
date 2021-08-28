@@ -14,7 +14,7 @@ autocompboost_default_params = function(task_type, tuning_method) {
         ps(
           classif.compboost.learning_rate = p_dbl(lower = 1e-4, upper = 0.5),
           classif.compboost.top_interactions = p_dbl(lower = 0.01, upper = 0.2),
-          subsample.frac = p_dbl(lower = 0.1, upper = 1, tags = "budget")
+          subsample.frac = p_dbl(lower = 0.5, upper = 1, tags = "budget")
         )
       )
     } else if (task_type == "regr") {
@@ -23,7 +23,7 @@ autocompboost_default_params = function(task_type, tuning_method) {
           regr.compboost.learning_rate_univariate = p_dbl(lower = 1e-4, upper = 0.5),
           regr.compboost.learning_rate_interactions = p_dbl(lower = 1e-4, upper = 0.5),
           regr.compboost.top_interactions = p_dbl(lower = 0.01, upper = 0.2),
-          subsample.frac = p_dbl(lower = 0.1, upper = 1, tags = "budget")
+          subsample.frac = p_dbl(lower = 0.5, upper = 1, tags = "budget")
         )
       )
     }
