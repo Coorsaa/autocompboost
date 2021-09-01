@@ -45,7 +45,16 @@ boostRpart = function(task, lr, iters, patience, eps_for_break, use_es,
       ll_trees[[i]][["test_risk"]] = logRisk(binary_response[idx_test], pred_old[idx_test])
       ll_trees[[i]][["train_risk"]] = logRisk(binary_response[idx_train], pred_old[idx_train])
 
-      enhancement = (test_risk_old - ll_trees[[i]][["test_risk"]]) / test_risk_old
+      if (is.infinite(test_risk_old)) {
+        warning("Test risk is infinite! Setting the enhancement to Inf.")
+        enhancement = Inf
+      } else {
+        enhancement = (test_risk_old - ll_trees[[i]][["test_risk"]]) / test_risk_old
+        if (is.na(enhancement)) {
+          warning("Enhancement still produces NAs! Setting the enhancement to Inf.")
+          enhancement = Inf
+        }
+      }
       if (enhancement < eps_for_break)
         k_stop = k_stop + 1
       else
