@@ -68,7 +68,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         iters_max_interactions = 50000L,
 
         # Control deeper interactions (trees):
-        add_deeper_interactions = FALSE,
+        add_deeper_interactions = TRUE,
         iters_deeper_interactions = 500L,
         #learning_rate_deeper_interactions = 0.15,
 

@@ -21,6 +21,9 @@
 #' @param tuning_iters (`integer(1)`) \cr
 #' Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 #' Default is set to `150` iterations. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @param tuning_generations (`integer(1)`) \cr
+#' Termination criterium for tuning method `smashy`. Number of generations for which to run the optimization. \cr
+#' Default is set to `3` generations. Tuning is terminated depending on the first termination criteria fulfilled.
 #' @param enable_tuning (`logical(1)`) \cr
 #' Whether or not to perform hyperparameter optimization. Default is `TRUE`.
 #' @param final_model (`logical(1)`) \cr
@@ -38,8 +41,8 @@
 #' model = AutoCompBoost(tsk("sonar"))
 #' model$train()
 #' }
-AutoCompBoost = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "mbo",
-  tuning_time = 60L, tuning_iters = 150L, enable_tuning = TRUE, final_model = TRUE) {
+AutoCompBoost = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "smashy",
+  tuning_time = 60L, tuning_iters = 150L, tuning_generations = 3L, enable_tuning = TRUE, final_model = TRUE) {
   if (task$task_type == "classif") {
     # stratify target variable so that every target lable appears in all folds while resampling
     target_is_factor = task$col_info[task$col_info$id == task$target_names, ]$type == "factor"

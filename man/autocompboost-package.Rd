@@ -17,6 +17,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Daniel Schalk \email{schalkdaniel242@gmail.com}
+\strong{Maintainer}: Stefan Coors \email{coors.stefan@gmail.de} (\href{https://orcid.org/0000-0002-7465-2146}{ORCID})
+
+Authors:
+\itemize{
+  \item Daniel Schalk \email{schalkdaniel242@gmail.com}
+}
 
 }

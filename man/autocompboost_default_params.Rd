@@ -11,7 +11,7 @@ autocompboost_default_params(task_type, tuning_method)
 Task type. \code{"classif"} for classification or \code{"regr"} for regression.}
 
 \item{tuning_method}{(\code{character(1L)}) \cr
-Tuning method, choice of \code{"mbo"} and \code{"hyperband"}. This is necessary since \code{"hyperband"} needs a budget parameter.}
+Tuning method, choice of \code{"mbo"} \code{"smashy"} and \code{"hyperband"}. This is necessary since \code{"hyperband"} and \code{"smashy"} need a budget parameter.}
 }
 \value{
 \code{\link[paradox:ParamSet]{ParamSet}}

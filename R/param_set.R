@@ -4,11 +4,11 @@
 #' @param task_type (`character(1L)`) \cr
 #' Task type. `"classif"` for classification or `"regr"` for regression.
 #' @param tuning_method (`character(1L)`) \cr
-#' Tuning method, choice of `"mbo"` and `"hyperband"`. This is necessary since `"hyperband"` needs a budget parameter.
+#' Tuning method, choice of `"mbo"` `"smashy"` and `"hyperband"`. This is necessary since `"hyperband"` and `"smashy"` need a budget parameter.
 #' @return [`ParamSet`][paradox::ParamSet]
 #' @export
 autocompboost_default_params = function(task_type, tuning_method) {
-  if (tuning_method == "hyperband") {
+  if (tuning_method %in% c("hyperband", "smashy")) {
     if (task_type == "classif") {
       return(
         ps(
@@ -21,8 +21,6 @@ autocompboost_default_params = function(task_type, tuning_method) {
       return(
         ps(
           regr.compboost.learning_rate = p_int(lower = -14, upper = -1, trafo = function(x) 2^x),
-          # regr.compboost.learning_rate_univariate = p_int(lower = -14, upper = -1, trafo = function(x) 2^x),
-          # regr.compboost.learning_rate_interactions = p_int(lower = -14, upper = -1, trafo = function(x) 2^x),
           regr.compboost.top_interactions = p_dbl(lower = 0.01, upper = 0.2),
           subsample.frac = p_dbl(lower = 0.5, upper = 1, tags = "budget")
         )
@@ -32,15 +30,14 @@ autocompboost_default_params = function(task_type, tuning_method) {
     if (task_type == "classif") {
       return(
         ps(
-          classif.compboost.learning_rate = p_dbl(lower = 1e-4, upper = 0.5),
+          classif.compboost.learning_rate = p_int(lower = -14, upper = -1, trafo = function(x) 2^x),
           classif.compboost.top_interactions = p_dbl(lower = 0.01, upper = 0.2)
         )
       )
     } else if (task_type == "regr") {
       return(
         ps(
-          regr.compboost.learning_rate_univariate = p_dbl(lower = 1e-4, upper = 0.5),
-          regr.compboost.learning_rate_interactions = p_dbl(lower = 1e-4, upper = 0.5),
+          regr.compboost.learning_rate = p_int(lower = -14, upper = -1, trafo = function(x) 2^x),
           regr.compboost.top_interactions = p_dbl(lower = 0.01, upper = 0.2)
         )
       )

@@ -2,14 +2,15 @@ Package: autocompboost
 Title: AutoML with compboost
 Version: 0.0.0.9000
 Authors@R:
-    person(given = "Stefan",
-           family = "Coors",
-           role = c("aut", "cre"),
-           email = "coors.stefan@gmail.de")
-    person(given = "Daniel",
-           family = "Schalk",
-           role = c("aut", "cre"),
-           email = "schalkdaniel242@gmail.com")
+    c(person(given = "Stefan",
+             family = "Coors",
+             role = c("aut", "cre"),
+             email = "coors.stefan@gmail.de",
+             comment = c(ORCID = "0000-0002-7465-2146")),
+      person(given = "Daniel",
+             family = "Schalk",
+             role = c("aut"),
+             email = "schalkdaniel242@gmail.com"))
 Description: AutoML with compboost.
 License: LGPL-3 + file LICENSE
 URL: https://github.com/coorsaa/autocompboost
@@ -31,6 +32,7 @@ Imports:
     mlrintermbo,
     compboost,
     paradox,
+    miesmuschel,
     R6,
     testthat
 Suggests:
@@ -41,6 +43,7 @@ Suggests:
     ranger
 Remotes:
     schalkdaniel/compboost@tensors
+    mlr-org/miesmuschel@smashy_ex
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: no

@@ -29,6 +29,10 @@ Default is set to \code{3600}, i.e. one hour. Tuning is terminated depending on 
 Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 Default is set to \code{150} iterations. Tuning is terminated depending on the first termination criteria fulfilled.}
 
+\item{tuning_generations}{(\code{integer(1)}) \cr
+Termination criterium for tuning method \code{smashy}. Number of generations for which to run the optimization. \cr
+Default is set to \code{3} generations. Tuning is terminated depending on the first termination criteria fulfilled.}
+
 \item{enable_tuning}{(\code{logical(1)}) \cr
 Whether or not to perform hyperparameter optimization. Default is \code{TRUE}.}
 
@@ -117,7 +121,7 @@ Contains the resampling method to be used for hyper-parameter optimization.}
 Contains the performance measure, for which we optimize during training. \cr}
 
 \item{\code{tuning_method}}{(\code{character(1)}) \cr
-Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"smash"}¸ Default is \code{"mbo"}.}
+Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"smashy"}¸ Default is \code{"smashy"}.}
 
 \item{\code{tuning_time}}{(\code{integer(1)}) \cr
 Termination criterium. Number of seconds for which to run the optimization. Does \emph{not} include training time of the final model. \cr
@@ -126,6 +130,10 @@ Default is set to \code{60}, i.e. one minuet. Tuning is terminated depending on 
 \item{\code{tuning_iters}}{(\code{integer(1)}) \cr
 Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 Default is set to \code{150} iterations. Tuning is terminated depending on the first termination criteria fulfilled.}
+
+\item{\code{tuning_generations}}{(\code{integer(1)}) \cr
+Termination criterium for tuning method \code{smashy}. Number of generations for which to run the optimization. \cr
+Default is set to \code{3} generations. Tuning is terminated depending on the first termination criteria fulfilled.}
 
 \item{\code{enable_tuning}}{(\code{logical(1)}) \cr
 Whether or not to perform hyperparameter optimization. Default is \code{TRUE}.}
