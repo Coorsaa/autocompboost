@@ -2,10 +2,24 @@ context("regression")
 
 test_that("regression-works", {
   task = mlr_tasks$get("boston_housing")
-  acb = AutoCompBoost(task = task, tuning_time = 10L)
+  acb = AutoCompBoost(
+    task = task, 
+    enable_tuning = FALSE,
+    param_values = list(
+      iters_max_univariate = 500L,
+      iters_max_interactions = 500L,
+      iters_deeper_interactions = 50L
+    )
+  )
 
   acb$train()
-  expect_class(acb$model(), "rpart") # FIXME: change to compboost when implemented
+  model = acb$model()
+  
+  expect_class(model, "list")
+  expect_class(model$univariate, "Compboost")
+  expect_class(model$interactions, "Compboost")
+  expect_class(model$deeper_interactions, "residualBooster")
+
   p = acb$predict()
   expect_prediction(p)
   expect_prediction_regr(p)

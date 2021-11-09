@@ -166,8 +166,15 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
           warning("An error occured during training. Fallback learner was used!")
           print(self$learner$errors)
         }
-        if (self$final_model)
-          private$.final_model = self$learner$model[[paste0(self$task$task_type, ".compboost")]]$model
+        if (self$final_model) {
+          if ("multiclass" %in% self$task$properties) {
+            private$.final_model = self$learner$model[[paste0(self$task$task_type, ".compboost")]]
+          } else {
+            private$.final_model = self$learner$model[[paste0(self$task$task_type, ".compboost")]]$model
+          } 
+
+        }
+
       }
     },
 
