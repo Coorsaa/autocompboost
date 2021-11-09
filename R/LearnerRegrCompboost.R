@@ -74,8 +74,8 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
 
         # Control early stopping:
         use_early_stopping = TRUE,
-        stop_patience = 2L, # FIXME
-        stop_epsylon_for_break = 0, # FIXME
+        stop_patience = 10L,
+        stop_epsylon_for_break = 1e-6,
         train_time_total = 120
       ) # Restrict the training to 2 hours
 
