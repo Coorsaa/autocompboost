@@ -171,7 +171,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
             private$.final_model = self$learner$model[[paste0(self$task$task_type, ".compboost")]]
           } else {
             private$.final_model = self$learner$model[[paste0(self$task$task_type, ".compboost")]]$model
-          } 
+          }
 
         }
 
@@ -231,17 +231,6 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     },
 
     #' @description
-    #' Returns the model summary
-    #' @return [`data.table`][data.table::data.table]
-    summary = function() {
-      if (is.null(self$learner$model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else {
-        return(self$learner$model)
-      }
-    },
-
-    #' @description
     #' Returns the trained model if `final_model` is set to TRUE.
     #' @return [`Compboost`][compboost::Compboost]
     model = function() {
@@ -262,6 +251,115 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         warning("Model has not been resampled yet. Run the $resample() method first.")
       } else {
         return(private$.resample_result)
+      }
+    },
+
+    #' @description
+    #' Returns the risk stages of the final model.
+    #' @return (`list`)
+    getRiskStages = function(log_entry = "train_risk") {
+      if (is.null(private$.final_model))
+        stop("Train learner first to extract risk values.")
+
+      out = data.frame(stage = c("featureless", "univariate", "pairwise interactions", "deep interactions"),
+        value = rep(NA_real_, 4L), explained = rep(NA_real_, 4L), percentage = rep(NA_real_, 4L),
+        iterations = rep(NA_integer_, 4L))
+
+      if ("univariate" %in% names(private$.final_model)) {
+        logs = private$.final_model$univariate$getLoggerData()
+        if (! log_entry %in% names(logs))
+          stop("No log entry", log_entry, "found in compboost log.")
+        out$value[1] = logs[[log_entry]][logs$baselearner == "intercept"]
+        out$value[2] = tail(logs[[log_entry]], 1)
+        out$iterations[1] = 0
+        out$iterations[2] = max(logs[["_iterations"]])
+      } else {
+        stop("At least univariate model must be given!")
+      }
+      if ("interactions" %in% names(private$.final_model)) {
+        logs = private$.final_model$interactions$getLoggerData()
+        if (! log_entry %in% names(logs))
+          stop("No log entry", log_entry, "found in compboost log.")
+        out$value[3] = tail(logs[[log_entry]], 1)
+        out$iterations[3] = max(logs[["_iterations"]])
+      }
+      if ("deeper_interactions" %in% names(private$.final_model)) {
+        vals = vapply(X = private$.final_model$deeper_interactions$trees, FUN = function(tree) {
+          if (! log_entry %in% names(tree))
+            stop("Cannot find log entry", log_entry, "in tree.")
+          return(tree[[log_entry]])
+        }, FUN.VALUE = numeric(1L))
+        if (length(vals) == 0)
+          out$value[4] = NA_real_
+        else
+          out$value[4] = tail(vals, 1L)
+
+        out$iterations[4] = length(vals)
+      }
+      out$explained = c(0, -diff(out$value))
+      out$percentage = out$explained / sum(out$explained, na.rm = TRUE)
+      return(out)
+    },
+
+    #' @description
+    #' Plot function to plot the final model's risk stages.
+    #' @return [`patchwork`][patchwork::wrap_plots]
+    plotRiskStages = function() {
+      if (is.null(private$.final_model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else if (self$final_model == FALSE) {
+        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
+      } else if (is.null(private$.risk_plot)) {
+        rstages = self$getRiskStages()[-1, ]
+        rstages$stage = factor(rstages$stage, levels = rstages$stage)
+        sp = ggplot2::ggplot(rstages, ggplot2::aes(x = "", y = percentage * 100, fill = stage)) +
+          ggplot2::geom_bar(stat = "identity", position = ggplot2::position_stack(reverse = TRUE)) +
+          ggplot2::theme(legend.position = "bottom") +
+          ggplot2::scale_y_reverse() +
+          ggplot2::xlab("") +
+          ggplot2::ylab("Percentage of explained risk per stage") +
+          ggplot2::labs(fill = "") +
+          ggplot2::theme_bw() +
+          ggsci::scale_fill_uchicago() +
+          ggplot2::theme(legend.position = "none")
+
+        log_uni = private$.final_model$univariate$getLoggerData()
+        log_uni$stage = "univariate"
+        log_int = private$.final_model$interactions$getLoggerData()
+        log_int$stage = "pairwise interactions"
+
+        log_deep = do.call(rbind, lapply(private$.final_model$deeper_interactions$trees, function(x) {
+          data.frame(oob_risk = x$test_risk, train_risk = x$train_risk, stage = "deep interactions")
+        }))
+        cols_risk = c("train_risk", "oob_risk", "stage")
+        log = rbind(log_uni[, cols_risk], log_int[, cols_risk], log_deep[, cols_risk])
+        log$iters = seq_len(nrow(log))
+        log$stage = factor(log$stage, levels = levels(rstages$stage))
+
+        tp = gg_risk = ggplot2::ggplot(log, ggplot2::aes(x = iters, color = stage)) +
+          ggplot2::geom_line(ggplot2::aes(y = train_risk, linetype = "Train risk")) +
+          ggplot2::geom_line(ggplot2::aes(y = oob_risk, linetype = "Validation risk")) +
+          ggplot2::ylab("Risk") +
+          ggplot2::xlab("Iteration") +
+          ggplot2::labs(linetype = "", color = "Stage") +
+          ggplot2::theme_bw() +
+          ggsci::scale_color_uchicago() +
+          ggplot2::ggtitle("Risk traces")
+      private$.risk_plot = patchwork::wrap_plots(sp, tp, ncol = 2, widths = c(0.05, 0.95))
+      }
+
+
+      return(private$.risk_plot)
+    },
+
+    #' @description
+    #' Returns the model summary
+    #' @return [`data.table`][data.table::data.table]
+    summary = function() {
+      if (is.null(self$learner$model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else {
+        return(self$.final_model)
       }
     },
 
@@ -296,22 +394,27 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
     #' @description
     #' Plot function to plot the feature importance.
-    #' @return [`ggplot`][ggplot2::ggplot]
+    #' @return [`patchwork`][patchwork::wrap_plots]
     plotFeatureImportance = function() {
-      if (is.null(self$learner$model)) {
+      if (is.null(private$.final_model)) {
         warning("Model has not been trained. Run the $train() method first.")
       } else if (self$final_model == FALSE) {
         warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
-      } else {
-        return(private$.final_model$plotFeatureImportance() + ggplot2::theme_bw())
+      } else if (is.null(private$.fimp_plot)) {
+        uni = private$.final_model$univariate$plotFeatureImportance() +
+        ggplot2::theme_bw() + ggplot2::ylab("Univariate importance")
+        int = private$.final_model$interactions$plotFeatureImportance() +
+        ggplot2::theme_bw() + ggplot2::ylab("Interaction importance")
+        private$.fimp_plot = patchwork::wrap_plots(uni, int)
       }
+      return(private$.fimp_plot)
     },
 
     #' @description
     #' Plot function to plot the learner traces.
     #' @return [`ggplot`][ggplot2::ggplot]
     plotBlearnerTraces = function() {
-      if (is.null(self$learner$model)) {
+      if (is.null(private$.final_model)) {
         warning("Model has not been trained. Run the $train() method first.")
       } else if (self$final_model == FALSE) {
         warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
@@ -324,6 +427,8 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
   private = list(
     .final_model = NULL,
     .resample_result = NULL,
+    .risk_plot = NULL,
+    .fimp_plot = NULL,
     .create_learner = function(param_values = NULL) {
       # get preproc pipeline
       if(self$tuning_method %in% c("hyperband", "smashy")) {

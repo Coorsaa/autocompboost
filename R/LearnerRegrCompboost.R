@@ -88,7 +88,7 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
       )
     },
 
-  getRiskStages = function(log_entry = "train_risk") {
+    getRiskStages = function(log_entry = "train_risk") {
       if (is.null(self$model))
         stop("Train learner first to extract risk values.")
 

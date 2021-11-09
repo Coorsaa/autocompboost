@@ -61,17 +61,21 @@ Name of spline to plot.}
 
 \code{\link[data.table:data.table]{data.table}}
 
-\code{\link[data.table:data.table]{data.table}}
-
 \code{\link[compboost:Compboost]{Compboost}}
 
 \code{\link[mlr3:ResampleResult]{mlr3}}
+
+(\code{list})
+
+\code{\link[patchwork:wrap_plots]{patchwork}}
+
+\code{\link[data.table:data.table]{data.table}}
 
 (\code{character()})
 
 \code{\link[ggplot2:ggplot]{ggplot}}
 
-\code{\link[ggplot2:ggplot]{ggplot}}
+\code{\link[patchwork:wrap_plots]{patchwork}}
 
 \code{\link[ggplot2:ggplot]{ggplot}}
 }
@@ -88,11 +92,15 @@ Performs nested resampling if \code{enable_tuning} equals \code{TRUE}.
 
 Helper to extract the best hyperparameters from a tuned model.
 
-Returns the model summary
-
 Returns the trained model if \code{final_model} is set to TRUE.
 
 Returns the resample result of method \code{resample()}.
+
+Returns the risk stages of the final model.
+
+Plot function to plot the final model's risk stages.
+
+Returns the model summary
 
 Returns the selected base learners by the final model.
 

@@ -39,6 +39,8 @@ Suggests:
     knitr,
     lgr,
     ggplot2,
+    patchwork,
+    ggsci,
     rpart,
     ranger
 Remotes:
