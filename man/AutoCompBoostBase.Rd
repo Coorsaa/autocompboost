@@ -69,13 +69,15 @@ Name of spline to plot.}
 
 \code{\link[patchwork:wrap_plots]{patchwork}}
 
-\code{\link[data.table:data.table]{data.table}}
+\code{\link[patchwork:wrap_plots]{patchwork}}
+
+\code{\link[patchwork:wrap_plots]{patchwork}}
+
+\code{\link[patchwork:wrap_plots]{patchwork}}
 
 (\code{character()})
 
 \code{\link[ggplot2:ggplot]{ggplot}}
-
-\code{\link[patchwork:wrap_plots]{patchwork}}
 
 \code{\link[ggplot2:ggplot]{ggplot}}
 }
@@ -100,13 +102,15 @@ Returns the risk stages of the final model.
 
 Plot function to plot the final model's risk stages.
 
-Returns the model summary
+Plot function to plot the feature importance.
+
+Plot function to plot the univariate effects.
+
+Plot function to plot the interaction effects.
 
 Returns the selected base learners by the final model.
 
 Plot function to plot a single spline.
-
-Plot function to plot the feature importance.
 
 Plot function to plot the learner traces.
 }

@@ -34,11 +34,11 @@ Imports:
     paradox,
     miesmuschel,
     R6,
+    ggplot2,
     testthat
 Suggests:
     knitr,
     lgr,
-    ggplot2,
     patchwork,
     ggsci,
     rpart,
