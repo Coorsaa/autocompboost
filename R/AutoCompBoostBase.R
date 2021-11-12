@@ -33,6 +33,9 @@
 #' @param tuning_iters (`integer(1)`) \cr
 #' Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 #' Default is set to `150` iterations. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @param tuning_generations (`integer(1)`) \cr
+#' Termination criterium for tuning method `smashy`. Number of generations for which to run the optimization. \cr
+#' Default is set to `3` generations. Tuning is terminated depending on the first termination criteria fulfilled.
 #' @param enable_tuning (`logical(1)`) \cr
 #' Whether or not to perform hyperparameter optimization. Default is `TRUE`.
 #' @param final_model (`logical(1)`) \cr
@@ -49,13 +52,16 @@
 #' @field measure ([Measure][mlr3::Measure]) \cr
 #' Contains the performance measure, for which we optimize during training. \cr
 #' @field tuning_method (`character(1)`) \cr
-#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"smash"`¸ Default is `"mbo"`.
+#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"smashy"`¸ Default is `"smashy"`.
 #' @field tuning_time (`integer(1)`) \cr
 #' Termination criterium. Number of seconds for which to run the optimization. Does *not* include training time of the final model. \cr
 #' Default is set to `60`, i.e. one minuet. Tuning is terminated depending on the first termination criteria fulfilled.
 #' @field tuning_iters (`integer(1)`) \cr
 #' Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 #' Default is set to `150` iterations. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @field tuning_generations (`integer(1)`) \cr
+#' Termination criterium for tuning method `smashy`. Number of generations for which to run the optimization. \cr
+#' Default is set to `3` generations. Tuning is terminated depending on the first termination criteria fulfilled.
 #' @field enable_tuning (`logical(1)`) \cr
 #' Whether or not to perform hyperparameter optimization. Default is `TRUE`.
 #' @field final_model (`logical(1)`) \cr
@@ -72,7 +78,11 @@
 #' @import mlr3pipelines
 #' @import mlrintermbo
 #' @import mlr3tuning
+#' @import mlr3hyperband
+#' @import mlr3learners
 #' @import paradox
+#' @import miesmuschel
+#' @import ggplot2
 #' @import checkmate
 #' @import testthat
 #' @importFrom R6 R6Class
@@ -96,8 +106,8 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Creates a new instance of this [R6][R6::R6Class] class.
     #'
     #' @return [AutoCompBoostBase][autocompboost::AutoCompBoostBase]
-    initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "mbo",
-      tuning_time = 60L, tuning_iters = 150L, enable_tuning = TRUE, final_model = TRUE) { # FIXME possibly add: , stratify = TRUE, tune_threshold = TRUE) {
+    initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "smashy",
+      tuning_time = 60L, tuning_iters = 150L, tuning_generations = 3L, enable_tuning = TRUE, final_model = TRUE) { # FIXME possibly add: , stratify = TRUE, tune_threshold = TRUE) {
 
       if (!is.null(resampling)) assert_resampling(resampling)
       if (!is.null(measure)) assert_measure(measure)
@@ -109,7 +119,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       self$enable_tuning = assert_logical(enable_tuning)
       self$tuning_time = assert_number(tuning_time, lower = 0)
       self$tuning_iters = assert_number(tuning_iters, lower = 0)
-      check_subset(tuning_method, choices = c("mbo", "hyperband", "smash"))
+      check_subset(tuning_method, choices = c("mbo", "hyperband", "smashy"))
       self$tuning_method = assert_character(tuning_method, len = 1)
       if (self$tuning_method == "hyperband") {
         self$tuning_terminator = trm("none")
@@ -125,28 +135,15 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       if (tuning_method == "mbo") {
         self$tuner = tnr("intermbo")
       } else if (tuning_method == "hyperband") {
-        self$tuner = tnr("hyperband", eta = 1.15)
-      } else if (tuning_method == "smash") {
-        # imputepl = po("imputeoor", offset = 1, multiplier = 10) %>>% po("fixfactors") %>>% po("imputesample")
-        # learnerlist = list(
-        #   ranger = GraphLearner$new(imputepl %>>% mlr3::lrn("regr.ranger", fallback = mlr3::lrn("regr.featureless"), encapsulate = c(train = "evaluate", predict = "evaluate"))),
-        #   knn = GraphLearner$new(imputepl %>>% mlr3::lrn("regr.kknn", fallback = mlr3::lrn("regr.featureless"), encapsulate = c(train = "evaluate", predict = "evaluate")))
-        # )
-        # self$tuner = tnr("smash",
-        #   budget_log_step = log(7),
-        #   survival_fraction = 0.45,
-        #   filter_algorithm = "progressive",
-        #   surrogate_learner = learnerlist$knn,
-        #   filter_with_max_budget = TRUE,
-        #   filter_factor_first = 50,  # keine ahnung wie wichtig das ist
-        #   filter_factor_first.end = 1000,
-        #   filter_factor_last = 10,
-        #   filter_factor_last.end = 25,
-        #   random_interleave_fraction = 0.5,
-        #   random_interleave_fraction.end = 0.8,
-        #   random_interleave_random = TRUE  # scheint relativ egal zu sein
-        # )
-        stopf("This tuning method is currently not supported") # FIXME
+        self$tuner = tnr("hyperband", eta = 1.1)
+      } else if (tuning_method == "smashy") {
+        self$tuner = tnr("smashy", fidelity_steps = 3, # FIXME: change after fix in miesmuschel
+          ftr("maybe", p = 0.5, filtor = ftr("surprog",
+            surrogate_learner = lrn("regr.ranger"),
+            filter.pool_factor = 10)),
+          mu = 20, survival_fraction = 0.5
+        )
+        self$tuning_terminator = trm("gens", generations = tuning_generations)
       }
       self$learner = private$.create_learner(param_values)
       self$final_model = assert_logical(final_model)
@@ -170,8 +167,15 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
           warning("An error occured during training. Fallback learner was used!")
           print(self$learner$errors)
         }
-        if (self$final_model)
-          private$.final_model = self$learner$model[[paste0(self$task$task_type, ".compboost")]]$model
+        if (self$final_model) {
+          if ("multiclass" %in% self$task$properties) {
+            private$.final_model = self$learner$model[[paste0(self$task$task_type, ".compboost")]]
+          } else {
+            private$.final_model = self$learner$model[[paste0(self$task$task_type, ".compboost")]]$model
+          }
+
+        }
+
       }
     },
 
@@ -228,17 +232,6 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     },
 
     #' @description
-    #' Returns the model summary
-    #' @return [`data.table`][data.table::data.table]
-    summary = function() {
-      if (is.null(self$learner$model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else {
-        return(self$learner$model)
-      }
-    },
-
-    #' @description
     #' Returns the trained model if `final_model` is set to TRUE.
     #' @return [`Compboost`][compboost::Compboost]
     model = function() {
@@ -261,6 +254,199 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         return(private$.resample_result)
       }
     },
+
+    #' @description
+    #' Returns the risk stages of the final model.
+    #' @return (`list`)
+    getRiskStages = function(log_entry = "train_risk") {
+      if (is.null(private$.final_model))
+        stop("Train learner first to extract risk values.")
+
+      out = data.frame(stage = c("featureless", "univariate", "pairwise interactions", "deep interactions"),
+        value = rep(NA_real_, 4L), explained = rep(NA_real_, 4L), percentage = rep(NA_real_, 4L),
+        iterations = rep(NA_integer_, 4L))
+
+      if ("univariate" %in% names(private$.final_model)) {
+        logs = private$.final_model$univariate$getLoggerData()
+        if (! log_entry %in% names(logs))
+          stop("No log entry", log_entry, "found in compboost log.")
+        out$value[1] = logs[[log_entry]][logs$baselearner == "intercept"]
+        out$value[2] = tail(logs[[log_entry]], 1)
+        out$iterations[1] = 0
+        out$iterations[2] = max(logs[["_iterations"]])
+      } else {
+        stop("At least univariate model must be given!")
+      }
+      if ("interactions" %in% names(private$.final_model)) {
+        logs = private$.final_model$interactions$getLoggerData()
+        if (! log_entry %in% names(logs))
+          stop("No log entry", log_entry, "found in compboost log.")
+        out$value[3] = tail(logs[[log_entry]], 1)
+        out$iterations[3] = max(logs[["_iterations"]])
+      }
+      if ("deeper_interactions" %in% names(private$.final_model)) {
+        vals = vapply(X = private$.final_model$deeper_interactions$trees, FUN = function(tree) {
+          if (! log_entry %in% names(tree))
+            stop("Cannot find log entry", log_entry, "in tree.")
+          return(tree[[log_entry]])
+        }, FUN.VALUE = numeric(1L))
+        if (length(vals) == 0)
+          out$value[4] = NA_real_
+        else
+          out$value[4] = tail(vals, 1L)
+
+        out$iterations[4] = length(vals)
+      }
+      out$explained = c(0, -diff(out$value))
+      out$percentage = out$explained / sum(out$explained, na.rm = TRUE)
+      return(out)
+    },
+
+    #' @description
+    #' Plot function to plot the final model's risk stages.
+    #' @return [`patchwork`][patchwork::wrap_plots]
+    plotRiskStages = function(log_entry = "train_risk") {
+      if (is.null(private$.final_model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else if (self$final_model == FALSE) {
+        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
+      } else if (is.null(private$.risk_plot)) {
+        rstages = self$getRiskStages(log_entry)[-1, ]
+        rstages$stage = factor(rstages$stage, levels = rstages$stage)
+        sp = ggplot(rstages, aes(x = "", y = percentage * 100, fill = stage)) +
+          geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+          theme(legend.position = "bottom") +
+          scale_y_reverse() +
+          xlab("") +
+          ylab("Percentage of explained risk per stage") +
+          labs(fill = "") +
+          theme_bw() +
+          ggsci::scale_fill_uchicago() +
+          theme(legend.position = "none")
+
+        log_uni = private$.final_model$univariate$getLoggerData()
+        log_uni$stage = "univariate"
+        log_int = private$.final_model$interactions$getLoggerData()
+        log_int$stage = "pairwise interactions"
+
+        log_deep = do.call(rbind, lapply(private$.final_model$deeper_interactions$trees, function(x) {
+          data.frame(oob_risk = x$test_risk, train_risk = x$train_risk, stage = "deep interactions")
+        }))
+        cols_risk = c("train_risk", "oob_risk", "stage")
+        log = rbind(log_uni[, cols_risk], log_int[, cols_risk], log_deep[, cols_risk])
+        log$iters = seq_len(nrow(log))
+        log$stage = factor(log$stage, levels = levels(rstages$stage))
+
+        tp = gg_risk = ggplot(log, aes(x = iters, color = stage)) +
+          geom_line(aes(y = train_risk, linetype = "Train risk")) +
+          geom_line(aes(y = oob_risk, linetype = "Validation risk")) +
+          ylab("Risk") +
+          xlab("Iteration") +
+          labs(linetype = "", color = "Stage") +
+          theme_bw() +
+          ggsci::scale_color_uchicago() +
+          ggtitle("Risk traces")
+      private$.risk_plot = patchwork::wrap_plots(sp, tp, ncol = 2, widths = c(0.05, 0.95))
+      }
+
+
+      return(private$.risk_plot)
+    },
+
+    #' @description
+    #' Plot function to plot the feature importance.
+    #' @return [`patchwork`][patchwork::wrap_plots]
+    plotFeatureImportance = function() {
+      if (is.null(private$.final_model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else if (self$final_model == FALSE) {
+        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
+      } else if (is.null(private$.fimp_plot)) {
+        vip_uni = private$.final_model$univariate$calculateFeatureImportance(aggregate_bl_by_feat = TRUE)
+        vip_uni$stage = "VIP: Uni. effects"
+        vip_uni$fnum = rev(seq_len(nrow(vip_uni)))
+
+        gg_vip_uni = ggplot(vip_uni, aes(x = risk_reduction, y = fnum)) +
+          geom_vline(xintercept = 0, color = "dark grey", alpha = 0.6) +
+          geom_segment(aes(xend = 0, yend = fnum)) +
+          geom_point() +
+          ylab("") +
+          xlab("Risk reduction") +
+          ggtitle("VIP: Univariate Effects") +
+          labs(color = "", fill = "") +
+          scale_y_continuous(labels = vip_uni$feature, breaks = vip_uni$fnum) +
+          scale_x_continuous(breaks = scales::pretty_breaks(n = 3)) +
+          theme_minimal()
+
+        vip_int = private$.final_model$interactions$calculateFeatureImportance()
+        top_interaction = vip_int$baselearner[1]
+
+        vip_int$stage = "VIP: Pairwise int."
+        vip_int$fnum = rev(seq_len(nrow(vip_int)))
+        vip_int$baselearner = sapply(
+          stringi::stri_split_fixed(vip_int$baselearner, pattern = "_"),
+          function(x) paste(x[1], x[2], sep = " & ")
+        )
+
+        gg_vip_int = ggplot(vip_int, aes(x = risk_reduction, y = fnum)) +
+          geom_vline(xintercept = 0, color = "dark grey", alpha = 0.6) +
+          geom_segment(aes(xend = 0, yend = fnum)) +
+          geom_point() +
+          ylab("") +
+          xlab("Risk reduction") +
+          ggtitle("VIP: Pairwise Interactions") +
+          labs(color = "", fill = "") +
+          scale_y_continuous(labels = vip_int$baselearner, breaks = vip_int$fnum) +
+          scale_x_continuous(breaks = scales::pretty_breaks(n = 3)) +
+          theme_minimal()
+
+        private$.fimp_plot = patchwork::wrap_plots(gg_vip_uni, gg_vip_int)
+      }
+      return(private$.fimp_plot)
+    },
+
+    #' @description
+    #' Plot function to plot the univariate effects.
+    #' @return [`patchwork`][patchwork::wrap_plots]
+    plotUnivariateEffects = function() {
+      if (is.null(private$.final_model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else if (self$final_model == FALSE) {
+        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
+      } else if (is.null(private$.uni_effects_plot)) {
+        extract = private$.final_model$univariate$extractComponents()
+        pe_numeric = predict(extract, newdata = self$task$data())
+
+
+        private$.uni_effects_plot = patchwork::wrap_plots(uni_effects)
+      }
+      return(private$.uni_effects_plot)
+    },
+
+    #' @description
+    #' Plot function to plot the interaction effects.
+    #' @return [`patchwork`][patchwork::wrap_plots]
+    plotInteractionEffects = function() {
+      if (is.null(private$.final_model)) {
+        warning("Model has not been trained. Run the $train() method first.")
+      } else if (self$final_model == FALSE) {
+        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
+      } else if (is.null(private$.int_effects_plot)) {
+        private$.uni_effects_plot = patchwork::wrap_plots(int_effects)
+      }
+      return(private$.uni_effects_plot)
+    },
+
+    # #' @description
+    # #' Returns the model summary
+    # #' @return [`data.table`][data.table::data.table]
+    # summary = function() {
+    #   if (is.null(self$learner$model)) {
+    #     warning("Model has not been trained. Run the $train() method first.")
+    #   } else {
+    #     return(self$.final_model)
+    #   }
+    # },
 
     #' @description
     #' Returns the selected base learners by the final model.
@@ -292,23 +478,10 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     },
 
     #' @description
-    #' Plot function to plot the feature importance.
-    #' @return [`ggplot`][ggplot2::ggplot]
-    plotFeatureImportance = function() {
-      if (is.null(self$learner$model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else if (self$final_model == FALSE) {
-        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
-      } else {
-        return(private$.final_model$plotFeatureImportance() + ggplot2::theme_bw())
-      }
-    },
-
-    #' @description
     #' Plot function to plot the learner traces.
     #' @return [`ggplot`][ggplot2::ggplot]
     plotBlearnerTraces = function() {
-      if (is.null(self$learner$model)) {
+      if (is.null(private$.final_model)) {
         warning("Model has not been trained. Run the $train() method first.")
       } else if (self$final_model == FALSE) {
         warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
@@ -321,9 +494,13 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
   private = list(
     .final_model = NULL,
     .resample_result = NULL,
+    .risk_plot = NULL,
+    .fimp_plot = NULL,
+    .uni_effects_plot = NULL,
+    .int_effects_plot = NULL,
     .create_learner = function(param_values = NULL) {
       # get preproc pipeline
-      if(self$tuning_method == "hyperband") {
+      if(self$tuning_method %in% c("hyperband", "smashy")) {
         if (self$task$task_type == "classif") {
           pipeline = autocompboost_preproc_pipeline(self$task, max_cardinality = 1000) %>>% po("subsample", stratify = TRUE)
         } else {

@@ -29,6 +29,10 @@ Default is set to \code{3600}, i.e. one hour. Tuning is terminated depending on 
 Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 Default is set to \code{150} iterations. Tuning is terminated depending on the first termination criteria fulfilled.}
 
+\item{tuning_generations}{(\code{integer(1)}) \cr
+Termination criterium for tuning method \code{smashy}. Number of generations for which to run the optimization. \cr
+Default is set to \code{3} generations. Tuning is terminated depending on the first termination criteria fulfilled.}
+
 \item{enable_tuning}{(\code{logical(1)}) \cr
 Whether or not to perform hyperparameter optimization. Default is \code{TRUE}.}
 
@@ -57,15 +61,21 @@ Name of spline to plot.}
 
 \code{\link[data.table:data.table]{data.table}}
 
-\code{\link[data.table:data.table]{data.table}}
-
 \code{\link[compboost:Compboost]{Compboost}}
 
 \code{\link[mlr3:ResampleResult]{mlr3}}
 
-(\code{character()})
+(\code{list})
 
-\code{\link[ggplot2:ggplot]{ggplot}}
+\code{\link[patchwork:wrap_plots]{patchwork}}
+
+\code{\link[patchwork:wrap_plots]{patchwork}}
+
+\code{\link[patchwork:wrap_plots]{patchwork}}
+
+\code{\link[patchwork:wrap_plots]{patchwork}}
+
+(\code{character()})
 
 \code{\link[ggplot2:ggplot]{ggplot}}
 
@@ -84,17 +94,23 @@ Performs nested resampling if \code{enable_tuning} equals \code{TRUE}.
 
 Helper to extract the best hyperparameters from a tuned model.
 
-Returns the model summary
-
 Returns the trained model if \code{final_model} is set to TRUE.
 
 Returns the resample result of method \code{resample()}.
 
+Returns the risk stages of the final model.
+
+Plot function to plot the final model's risk stages.
+
+Plot function to plot the feature importance.
+
+Plot function to plot the univariate effects.
+
+Plot function to plot the interaction effects.
+
 Returns the selected base learners by the final model.
 
 Plot function to plot a single spline.
-
-Plot function to plot the feature importance.
 
 Plot function to plot the learner traces.
 }
@@ -117,7 +133,7 @@ Contains the resampling method to be used for hyper-parameter optimization.}
 Contains the performance measure, for which we optimize during training. \cr}
 
 \item{\code{tuning_method}}{(\code{character(1)}) \cr
-Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"smash"}¸ Default is \code{"mbo"}.}
+Tuning method. Possible choices are \code{"mbo"}, \code{"hyperband"} or \code{"smashy"}¸ Default is \code{"smashy"}.}
 
 \item{\code{tuning_time}}{(\code{integer(1)}) \cr
 Termination criterium. Number of seconds for which to run the optimization. Does \emph{not} include training time of the final model. \cr
@@ -126,6 +142,10 @@ Default is set to \code{60}, i.e. one minuet. Tuning is terminated depending on 
 \item{\code{tuning_iters}}{(\code{integer(1)}) \cr
 Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 Default is set to \code{150} iterations. Tuning is terminated depending on the first termination criteria fulfilled.}
+
+\item{\code{tuning_generations}}{(\code{integer(1)}) \cr
+Termination criterium for tuning method \code{smashy}. Number of generations for which to run the optimization. \cr
+Default is set to \code{3} generations. Tuning is terminated depending on the first termination criteria fulfilled.}
 
 \item{\code{enable_tuning}}{(\code{logical(1)}) \cr
 Whether or not to perform hyperparameter optimization. Default is \code{TRUE}.}

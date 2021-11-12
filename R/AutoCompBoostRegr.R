@@ -21,13 +21,16 @@
 #' Contains the performance measure, for which we optimize during training. \cr
 #' Defaults to [Accuracy][mlr3measures::acc] for classification and [RMSE][mlr3measures::rmse] for regression.
 #' @param tuning_method (`character(1)`) \cr
-#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"smash"`¸ Default is `"mbo"`.
+#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"smashy"`¸ Default is `"smashy"`.
 #' @param tuning_time (`integer(1)`) \cr
 #' Termination criterium. Number of seconds for which to run the optimization. Does *not* include training time of the final model. \cr
 #' Default is set to `3600`, i.e. one hour. Tuning is terminated depending on the first termination criteria fulfilled.
 #' @param tuning_iters (`integer(1)`) \cr
 #' Termination criterium. Number of MBO iterations for which to run the optimization. \cr
 #' Default is set to `150` iterations. Tuning is terminated depending on the first termination criteria fulfilled.
+#' @param tuning_generations (`integer(1)`) \cr
+#' Termination criterium for tuning method `smashy`. Number of generations for which to run the optimization. \cr
+#' Default is set to `3` generations. Tuning is terminated depending on the first termination criteria fulfilled.
 #' @param enable_tuning (`logical(1)`) \cr
 #' Whether or not to perform hyperparameter optimization. Default is `TRUE`.
 #' @param final_model (`logical(1)`) \cr
@@ -49,9 +52,11 @@ AutoCompBoostRegr = R6Class(
     #' Creates a new instance of this [R6][R6::R6Class] class.
     #'
     #' @return [AutoCompBoostRegr][autocompboost::AutoCompBoostRegr]
-    initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "mbo",
-      tuning_time = 60L, tuning_iters = 150L, enable_tuning = TRUE, final_model = TRUE) {
+    initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "smashy",
+      tuning_time = 60L, tuning_iters = 150L, tuning_generations = 3L, enable_tuning = TRUE, final_model = TRUE) {
       checkmate::assert_r6(task, "TaskRegr")
+      assert_number(tuning_iters)
+      assert_number(tuning_time)
       self$measure = measure %??% mlr_measures$get("regr.rmse")
 
       super$initialize(task = task, resampling = resampling, param_values = param_values,

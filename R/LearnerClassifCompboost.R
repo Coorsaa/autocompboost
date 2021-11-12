@@ -22,30 +22,30 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       cores_max = parallel::detectCores()
       ps = ParamSet$new(
         params = list(
-          ParamDbl$new(id = "df", default = 4, lower = 1),
-          ParamDbl$new(id = "df_cat", default = 4, lower = 1),
-          ParamInt$new(id = "iters_max_univariate", default = 10000L, lower = 1L),
-          ParamInt$new(id = "iters_max_interactions", default = 10000L, lower = 1L),
-          #ParamDbl$new(id = "learning_rate_univariate", default = 0.01, lower = 0),
-          #ParamDbl$new(id = "learning_rate_interactions", default = 0.1, lower = 0),
-          ParamDbl$new(id = "n_knots_univariate", default = 20L, lower = 4),
-          ParamDbl$new(id = "n_knots_interactions", default = 10L, lower = 4),
-          ParamLgl$new(id = "use_components", default = TRUE),
-          ParamInt$new(id = "ncores", default = trunc(cores_max / 2), lower = 1L, upper = cores_max),
-          ParamDbl$new(id = "stop_epsylon_for_break", default = 0.00001, lower = 0, upper = 1),
-          ParamDbl$new(id = "stop_patience", default = 10L, lower = 1L),
-          ParamDbl$new(id = "val_fraction", default = 0.33, lower = 0, upper = 1),
-          ParamDbl$new(id = "top_interactions", default = 0.02, lower = 0.01, upper = 1),
-          ParamDbl$new(id = "n_min_interactions", default = 10L, lower = 0),
-          ParamLgl$new(id = "use_early_stopping", default = TRUE),
-          ParamLgl$new(id = "show_output", default = FALSE),
-          ParamLgl$new(id = "just_univariate", default = FALSE),
-          ParamLgl$new(id = "add_deeper_interactions", default = FALSE),
-          ParamInt$new(id = "iters_deeper_interactions", default = 500, lower = 0),
+          ParamDbl$new(id = "df", default = 4, lower = 1, tags = "train"),
+          ParamDbl$new(id = "df_cat", default = 4, lower = 1, tags = "train"),
+          ParamInt$new(id = "iters_max_univariate", default = 10000L, lower = 1L, tags = "train"),
+          ParamInt$new(id = "iters_max_interactions", default = 10000L, lower = 1L, tags = "train"),
+          # ParamDbl$new(id = "learning_rate_univariate", default = 0.01, lower = 0),
+          # ParamDbl$new(id = "learning_rate_interactions", default = 0.1, lower = 0),
+          ParamDbl$new(id = "n_knots_univariate", default = 20L, lower = 4, tags = "train"),
+          ParamDbl$new(id = "n_knots_interactions", default = 10L, lower = 4, tags = "train"),
+          ParamLgl$new(id = "use_components", default = TRUE, tags = "train"),
+          ParamInt$new(id = "ncores", default = 1L, lower = 1L, upper = parallel::detectCores() - 1L, tags = c("train", "test")),
+          ParamDbl$new(id = "stop_epsylon_for_break", default = 0.00001, lower = 0, upper = 1, tags = "train"),
+          ParamDbl$new(id = "stop_patience", default = 10L, lower = 1L, tags = "train"),
+          ParamDbl$new(id = "val_fraction", default = 0.33, lower = 0, upper = 1, tags = "train"),
+          ParamDbl$new(id = "top_interactions", default = 0.02, lower = 0.01, upper = 1, tags = "train"),
+          ParamDbl$new(id = "n_min_interactions", default = 10L, lower = 0, tags = "train"),
+          ParamLgl$new(id = "use_early_stopping", default = TRUE, tags = "train"),
+          ParamLgl$new(id = "show_output", default = FALSE, tags = "train"),
+          ParamLgl$new(id = "just_univariate", default = FALSE, tags = "train"),
+          ParamLgl$new(id = "add_deeper_interactions", default = FALSE, tags = "train"),
+          ParamInt$new(id = "iters_deeper_interactions", default = 500, lower = 0, tags = "train"),
           #ParamDbl$new(id = "learning_rate_deeper_interactions", default = 0.2, lower = 0, upper = 1),
-          ParamInt$new(id = "train_time_total", default = 0, lower = 0),
-          ParamInt$new(id = "n_threshold_binning", default = 4900, lower = 0),
-          ParamDbl$new(id = "learning_rate", default = 0.01, lower = 0)
+          ParamInt$new(id = "train_time_total", default = 0, lower = 0, tags = "train"),
+          ParamInt$new(id = "n_threshold_binning", default = 4900, lower = 0, tags = "train"),
+          ParamDbl$new(id = "learning_rate", default = 0.01, lower = 0, tags = "train")
         ))
       ps$values = list(
         # General pars:
@@ -54,6 +54,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         use_components = TRUE,
         show_output = FALSE,
         learning_rate = 0.01,
+        ncores = parallel::detectCores() - 1L,
 
         # Univariate model:
         #learning_rate_univariate = 0.1,
@@ -68,15 +69,16 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         iters_max_interactions = 50000L,
 
         # Control deeper interactions (trees):
-        add_deeper_interactions = FALSE,
+        add_deeper_interactions = TRUE,
         iters_deeper_interactions = 500L,
         #learning_rate_deeper_interactions = 0.15,
 
         # Control early stopping:
         use_early_stopping = TRUE,
-        stop_patience = 2L,
-        stop_epsylon_for_break = 0,
-        train_time_total = 120) # Restrict the training to 2 hours
+        stop_patience = 10L,
+        stop_epsylon_for_break = 1e-6,
+        train_time_total = 120
+      ) # Restrict the training to 2 hours
 
       super$initialize(
         id = "classif.compboost",
@@ -174,7 +176,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           loss = loss, learning_rate = self$param_set$values$learning_rate,
           #loss = loss, learning_rate = self$param_set$values$learning_rate_univariate,
           optimizer = optimizer, test_idx = test_idx, stop_args = stop_args,
-          use_early_stopping = self$param_set$values$use_early_stopping)
+          use_early_stopping = self$param_set$values$use_early_stopping
+        )
 
         ### If a maximum time is given, the logger is used for stopping. Otherwise the time is just logged:
         if (self$param_set$values$train_time_total > 0)
@@ -382,7 +385,6 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       else
         list(prob = pmat)
     }
-
   )
 )
 
