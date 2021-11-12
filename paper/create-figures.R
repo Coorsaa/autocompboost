@@ -95,13 +95,14 @@ predictTensor = function(dat, dato, coef, tnames, n_knots, degree) {
 }
 
 # Use adult task from OpenML:
-task = tsk("oml", task_id = 7592)
+#task = tsk("oml", task_id = 7592)
+task = tsk("sonar")
 
 # Remove rows with missings:
 task$filter(which(complete.cases(task$data())))
 
 # Train compboost learner:
-set.seed(31415)
+set.seed(3141)
 cboost = lrn("classif.compboost", predict_type = "prob", show_output = TRUE,
   learning_rate = 0.01, add_deeper_interactions = TRUE,
   stop_epsylon_for_break = 0, stop_patience = 3L, df = 4)
@@ -149,16 +150,16 @@ knitr::kable(rstages)
 rstages = rstages[-1, ]
 rstages$stage = factor(rstages$stage, levels = rev(rstages$stage))
 
-gg_explained_per_stage = ggplot(rstages, aes(x = "", y = percentage, fill = stage)) +
-  geom_bar(stat = "identity") +
-  theme(legend.position = "bottom") +
-  coord_flip() +
-  #scale_y_reverse() +
-  xlab("") +
-  ylab("Percentage of explained risk") +
-  #ggtitle("Explained risk per stage") +
-  labs(fill = "") +
-  ggsci::scale_fill_uchicago()
+#gg_explained_per_stage = ggplot(rstages, aes(x = "", y = percentage, fill = stage)) +
+  #geom_bar(stat = "identity") +
+  #theme(legend.position = "bottom") +
+  #coord_flip() +
+  scale_y_reverse() +
+  #xlab("") +
+  #ylab("Percentage of explained risk") +
+  ggtitle("Explained risk per stage") +
+  #labs(fill = "") +
+  #ggsci::scale_fill_uchicago()
 
 
 log_uni = cboost$model$univariate$getLoggerData()
@@ -173,38 +174,61 @@ cols_risk = c("train_risk", "oob_risk", "stage")
 log = rbind(log_uni[, cols_risk], log_int[, cols_risk], log_deep[, cols_risk])
 log$iters = seq_len(nrow(log))
 
+log$stage[log$stage == "deep interactions"] = "deep trees"
+
+df_stages = rstages
+df_stages$auc_end = rstages$value
+df_stages$auc_start = c(max(log$train_risk), rstages$value[-3])
+df_stages$stage = c("univariate", "pairwise interactions", "deep trees")
+
+df_text = data.frame(text = paste0(as.character(round(rstages$percentage, 3) * 100), " %"),
+  auc = df_stages$auc_end - diff(c(df_stages$auc_start, df_stages$auc_end[3])) / 2,
+  stage = c("univariate", "pairwise interactions", "deep trees"))
+
 gg_risk = ggplot(log, aes(x = iters, color = stage)) +
   geom_line(aes(y = train_risk, linetype = "Train risk")) +
   geom_line(aes(y = oob_risk, linetype = "Validation risk")) +
+  geom_segment(data = df_stages, mapping = aes(x = 1, y = auc_start, xend = 1, yend = auc_end)) +
+  geom_label(data = df_text, mapping = aes(x = 70, y = auc, label = text, fill = stage),
+    color = "white", fontface = "bold", show.legend = FALSE, size = 2) +
   ylab("Risk") +
   xlab("Iteration") +
   labs(linetype = "", color = "Stage") +
   ggsci::scale_color_uchicago() +
+  ggsci::scale_fill_uchicago() +
   ggtitle("Risk traces")
 
-mylegend = g_legend(gg_risk)
-
-gt1 = ggplot_gtable(ggplot_build(gg_risk + theme(legend.position = "none")))
-gt2 = ggplot_gtable(ggplot_build(gg_explained_per_stage + theme(legend.position = "none")))
-
-gt2$widths = gt1$width
-dev.off()
-
-p3 = grid.arrange(
-  arrangeGrob(
-    gt1,
-    gt2,
-    nrow = 2,
-    heights = c(4, 2)),
-  mylegend, nrow = 1, widths = c(5, 3))
-dev.off()
-
 ggsave(
-  plot = p3,
-  filename = "figures/fig-complexity.pdf",
+  plot = gg_risk,
+  filename = "fig-complexity.pdf",
   width = dinA4width,
-  height = dinA4width * 0.4,
+  height = dinA4width * 0.35,
   units = "mm")
+
+
+#mylegend = g_legend(gg_risk)
+
+#gt1 = ggplot_gtable(ggplot_build(gg_risk + theme(legend.position = "none")))
+#gt2 = ggplot_gtable(ggplot_build(gg_explained_per_stage + theme(legend.position = "none")))
+
+#gt2$widths = gt1$width
+#dev.off()
+
+#p3 = grid.arrange(
+  #arrangeGrob(
+    #gt1,
+    #gt2,
+    #nrow = 2,
+    #heights = c(4, 2)),
+  #mylegend, nrow = 1, widths = c(5, 3))
+#dev.off()
+
+#ggsave(
+  #plot = p3,
+  #filename = "figures/fig-complexity.pdf",
+  #width = dinA4width,
+  #height = dinA4width * 0.4,
+  #units = "mm")
 
 
 
