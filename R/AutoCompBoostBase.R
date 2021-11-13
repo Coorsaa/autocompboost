@@ -235,13 +235,8 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Returns the trained model if `final_model` is set to TRUE.
     #' @return [`Compboost`][compboost::Compboost]
     model = function() {
-      if (is.null(self$learner$model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else if (self$final_model == FALSE) {
-        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
-      } else {
-        return(private$.final_model)
-      }
+      private$.check_trained()
+      return(private$.final_model)
     },
 
     #' @description
@@ -259,9 +254,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Returns the risk stages of the final model.
     #' @return (`list`)
     getRiskStages = function(log_entry = "train_risk") {
-      if (is.null(private$.final_model))
-        stop("Train learner first to extract risk values.")
-
+      private$.check_trained()
       out = data.frame(stage = c("featureless", "univariate", "pairwise interactions", "deep interactions"),
         value = rep(NA_real_, 4L), explained = rep(NA_real_, 4L), percentage = rep(NA_real_, 4L),
         iterations = rep(NA_integer_, 4L))
@@ -306,23 +299,10 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Plot function to plot the final model's risk stages.
     #' @return [`patchwork`][patchwork::wrap_plots]
     plotRiskStages = function(log_entry = "train_risk") {
-      if (is.null(private$.final_model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else if (self$final_model == FALSE) {
-        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
-      } else if (is.null(private$.risk_plot)) {
+      private$.check_trained()
+      if (is.null(private$.risk_plot)) {
         rstages = self$getRiskStages(log_entry)[-1, ]
         rstages$stage = factor(rstages$stage, levels = rstages$stage)
-        sp = ggplot(rstages, aes(x = "", y = percentage * 100, fill = stage)) +
-          geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
-          theme(legend.position = "bottom") +
-          scale_y_reverse() +
-          xlab("") +
-          ylab("Percentage of explained risk per stage") +
-          labs(fill = "") +
-          theme_bw() +
-          ggsci::scale_fill_uchicago() +
-          theme(legend.position = "none")
 
         log_uni = private$.final_model$univariate$getLoggerData()
         log_uni$stage = "univariate"
@@ -337,16 +317,46 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         log$iters = seq_len(nrow(log))
         log$stage = factor(log$stage, levels = levels(rstages$stage))
 
-        tp = gg_risk = ggplot(log, aes(x = iters, color = stage)) +
+        df_stages = rstages
+        df_stages$loss_end = rstages$value
+        df_stages$loss_start = c(max(log$train_risk), rstages$value[-3])
+        df_stages$stage = c("univariate", "pairwise interactions", "deep interactions")
+        df_stages$stage = factor(df_stages$stage, levels = levels(rstages$stage))
+        df_stages[is.na(df_stages$loss_end), "loss_end"] = df_stages[is.na(df_stages$loss_end), "loss_start"]
+
+        df_text = data.frame(text = paste0(as.character(round(rstages$percentage, 3) * 100), " %"),
+          loss = df_stages$loss_end - diff(c(df_stages$loss_start, df_stages$loss_end[3])) / 2,
+          stage = c("univariate", "pairwise interactions", "deep trees"))
+        df_text$stage = factor(df_text$stage, levels = levels(rstages$stage))
+        # df_text$height = df_stages$percentage / 2
+
+
+        sp = ggplot(df_stages, aes(x = "", y = percentage * 100, fill = stage)) +
+          geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+          theme(legend.position = "bottom") +
+          # geom_label(data = df_text, mapping = aes(x = "", y = 100 - (height * 100), label = text, fill = stage),
+            # color = "white", fontface = "bold", show.legend = FALSE, size = 3) +
+          scale_y_reverse() +
+          xlab("") +
+          ylab("Percentage of explained risk per stage") +
+          labs(fill = "") +
+          theme_minimal() +
+          ggsci::scale_fill_uchicago() +
+          theme(legend.position = "none")
+
+        tp = ggplot(log, aes(x = iters, color = stage)) +
           geom_line(aes(y = train_risk, linetype = "Train risk")) +
           geom_line(aes(y = oob_risk, linetype = "Validation risk")) +
+          geom_label(data = df_text, mapping = aes(x = 70, y = loss, label = text, fill = stage),
+            color = "white", fontface = "bold", show.legend = FALSE, size = 4) +
           ylab("Risk") +
           xlab("Iteration") +
           labs(linetype = "", color = "Stage") +
-          theme_bw() +
           ggsci::scale_color_uchicago() +
+          ggsci::scale_fill_uchicago() +
+          theme_minimal() +
           ggtitle("Risk traces")
-      private$.risk_plot = patchwork::wrap_plots(sp, tp, ncol = 2, widths = c(0.05, 0.95))
+        private$.risk_plot = patchwork::wrap_plots(sp, tp, ncol = 2, widths = c(0.1, 0.9))
       }
 
 
@@ -356,67 +366,82 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' @description
     #' Plot function to plot the feature importance.
     #' @return [`patchwork`][patchwork::wrap_plots]
-    plotFeatureImportance = function() {
-      if (is.null(private$.final_model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else if (self$final_model == FALSE) {
-        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
-      } else if (is.null(private$.fimp_plot)) {
-        vip_uni = private$.final_model$univariate$calculateFeatureImportance(aggregate_bl_by_feat = TRUE)
-        vip_uni$stage = "VIP: Uni. effects"
-        vip_uni$fnum = rev(seq_len(nrow(vip_uni)))
+    getFeatureImportance = function() {
+      private$.check_trained()
+      if (is.null(private$.fi_data)) {
+        fi_uni = private$.final_model$univariate$calculateFeatureImportance(aggregate_bl_by_feat = TRUE)
+        fi_uni$stage = "Univariate Effects"
+        fi_uni$fnum = rev(seq_len(nrow(fi_uni)))
 
-        gg_vip_uni = ggplot(vip_uni, aes(x = risk_reduction, y = fnum)) +
-          geom_vline(xintercept = 0, color = "dark grey", alpha = 0.6) +
-          geom_segment(aes(xend = 0, yend = fnum)) +
-          geom_point() +
-          ylab("") +
-          xlab("Risk reduction") +
-          ggtitle("VIP: Univariate Effects") +
-          labs(color = "", fill = "") +
-          scale_y_continuous(labels = vip_uni$feature, breaks = vip_uni$fnum) +
-          scale_x_continuous(breaks = scales::pretty_breaks(n = 3)) +
-          theme_minimal()
+        fi_int = private$.final_model$interactions$calculateFeatureImportance()
+        # top_interaction = fi_int$baselearner[1]
 
-        vip_int = private$.final_model$interactions$calculateFeatureImportance()
-        top_interaction = vip_int$baselearner[1]
-
-        vip_int$stage = "VIP: Pairwise int."
-        vip_int$fnum = rev(seq_len(nrow(vip_int)))
-        vip_int$baselearner = sapply(
-          stringi::stri_split_fixed(vip_int$baselearner, pattern = "_"),
-          function(x) paste(x[1], x[2], sep = " & ")
+        fi_int$stage = "Pairwise Interactions"
+        fi_int$fnum = rev(seq_len(nrow(fi_int)))
+        fi_int$baselearner = sapply(
+          stringi::stri_split_fixed(fi_int$baselearner, pattern = "_"),
+          function(x) paste(x[1], x[2], sep = " x ")
         )
+        private$.fi_data = list(univariate = fi_uni, interactions = fi_int)
+      }
+      return(private$.fi_data)
+    },
 
-        gg_vip_int = ggplot(vip_int, aes(x = risk_reduction, y = fnum)) +
+    #' @description
+    #' Plot function to plot the feature importance.
+    #' @return [`patchwork`][patchwork::wrap_plots]
+    plotFeatureImportance = function() {
+      private$.check_trained()
+      if (is.null(private$.fi_plot)) {
+        fi_data = self$getFeatureImportance()
+        fi_uni = fi_data$univariate
+        gg_fi_uni = ggplot(fi_uni, aes(x = risk_reduction, y = fnum)) +
           geom_vline(xintercept = 0, color = "dark grey", alpha = 0.6) +
           geom_segment(aes(xend = 0, yend = fnum)) +
           geom_point() +
           ylab("") +
           xlab("Risk reduction") +
-          ggtitle("VIP: Pairwise Interactions") +
+          ggtitle("Feature importance: Univariate Effects") +
           labs(color = "", fill = "") +
-          scale_y_continuous(labels = vip_int$baselearner, breaks = vip_int$fnum) +
+          scale_y_continuous(labels = fi_uni$feature, breaks = fi_uni$fnum) +
           scale_x_continuous(breaks = scales::pretty_breaks(n = 3)) +
           theme_minimal()
 
-        private$.fimp_plot = patchwork::wrap_plots(gg_vip_uni, gg_vip_int)
+        fi_int = fi_data$interactions
+        gg_fi_int = ggplot(fi_int, aes(x = risk_reduction, y = fnum)) +
+          geom_vline(xintercept = 0, color = "dark grey", alpha = 0.6) +
+          geom_segment(aes(xend = 0, yend = fnum)) +
+          geom_point() +
+          ylab("") +
+          xlab("Risk reduction") +
+          ggtitle("Feature Importance: Pairwise Interactions") +
+          labs(color = "", fill = "") +
+          scale_y_continuous(labels = fi_int$baselearner, breaks = fi_int$fnum) +
+          scale_x_continuous(breaks = scales::pretty_breaks(n = 3)) +
+          theme_minimal()
+
+        private$.fi_plot = patchwork::wrap_plots(gg_fi_uni, gg_fi_int)
       }
-      return(private$.fimp_plot)
+      return(private$.fi_plot)
     },
 
     #' @description
     #' Plot function to plot the univariate effects.
     #' @return [`patchwork`][patchwork::wrap_plots]
-    plotUnivariateEffects = function() {
-      if (is.null(private$.final_model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else if (self$final_model == FALSE) {
-        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
-      } else if (is.null(private$.uni_effects_plot)) {
+    plotUnivariateEffects = function(top_n_effects = 3L) {
+      private$.check_trained()
+      if (is.null(private$.uni_effects_plot)) {
+        coefs = private$.final_model$univariate$getEstimatedCoef()
+        offset = coefs$offset
         extract = private$.final_model$univariate$extractComponents()
         pe_numeric = predict(extract, newdata = self$task$data())
-
+        pe_cat = coefs[grepl("Categorical", vapply(coefs, function(cf) {
+          atr = attr(cf, "blclass")
+          if (is.null(atr))
+            return("Offset")
+          else
+            return(atr)
+        }, character(1L)))]
 
         private$.uni_effects_plot = patchwork::wrap_plots(uni_effects)
       }
@@ -427,11 +452,8 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Plot function to plot the interaction effects.
     #' @return [`patchwork`][patchwork::wrap_plots]
     plotInteractionEffects = function() {
-      if (is.null(private$.final_model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else if (self$final_model == FALSE) {
-        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
-      } else if (is.null(private$.int_effects_plot)) {
+      private$.check_trained()
+      if (is.null(private$.int_effects_plot)) {
         private$.uni_effects_plot = patchwork::wrap_plots(int_effects)
       }
       return(private$.uni_effects_plot)
@@ -452,13 +474,8 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Returns the selected base learners by the final model.
     #' @return (`character()`)
     getSelectedBaselearner = function() {
-      if (is.null(self$learner$model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else if (self$final_model == FALSE) {
-        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
-      } else {
-        return(private$.final_model$getSelectedBaselearner())
-      }
+      private$.check_trained()
+      return(private$.final_model$getSelectedBaselearner())
     },
 
     #' @description
@@ -468,26 +485,16 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' @return [`ggplot`][ggplot2::ggplot]
     plotSpline = function(spline = character(1L)) {
       assert_character(spline, len = 1L)
-      if (is.null(self$learner$model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else if (self$final_model == FALSE) {
-        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
-      } else {
-        return(private$.final_model$getSelectedBaselearner() + ggplot2::theme_bw())
-      }
+      private$.check_trained()
+      return(private$.final_model$getSelectedBaselearner() + ggplot2::theme_bw())
     },
 
     #' @description
     #' Plot function to plot the learner traces.
     #' @return [`ggplot`][ggplot2::ggplot]
     plotBlearnerTraces = function() {
-      if (is.null(private$.final_model)) {
-        warning("Model has not been trained. Run the $train() method first.")
-      } else if (self$final_model == FALSE) {
-        warning("Argument `final_model` has been set to `FALSE`. No final Model trained.")
-      } else {
-        return(private$.final_model$plotBlearnerTraces() + ggplot2::theme_bw())
-      }
+      private$.check_trained()
+      return(private$.final_model$plotBlearnerTraces() + ggplot2::theme_bw())
     }
   ),
 
@@ -495,9 +502,15 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     .final_model = NULL,
     .resample_result = NULL,
     .risk_plot = NULL,
-    .fimp_plot = NULL,
+    .fi_data = NULL,
+    .fi_plot = NULL,
     .uni_effects_plot = NULL,
     .int_effects_plot = NULL,
+    .check_trained = function() {
+      if (is.null(private$.final_model) | self$final_model == FALSE) {
+        stop("Argument `final_model` has been set to `FALSE` or model has not been trained yet. Run the $train() method first.")
+      }
+    },
     .create_learner = function(param_values = NULL) {
       # get preproc pipeline
       if(self$tuning_method %in% c("hyperband", "smashy")) {
