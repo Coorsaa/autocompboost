@@ -36,7 +36,7 @@ library(data.table)
 task = tsk("iris")
 
 nbtrees = 50
-learner = lrn("classif.ranger", num.trees = nbtrees, max.depth = 5)
+learner = lrn("classif.ranger", num.trees = nbtrees, max.depth = 3)
 
 learner$train(task)
 model = learner$model
