@@ -342,16 +342,20 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       df_new$residuals = pseudo_int
       tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
 
-      #residual_booster = boostRpart(tsk_new, lr = self$param_set$values$learning_rate_deeper_interactions,
-      residual_booster = boostRpart(tsk_new, lr = self$param_set$values$learning_rate,
-        iters = self$param_set$values$iters_deeper_interactions,
-        patience = stop_args$patience, eps_for_break = stop_args$eps_for_break,
-        use_es = self$param_set$values$use_early_stopping, idx_train = train_idx,
-        idx_test = test_idx, logRisk = logRisk, binary_response = bin_response,
-        prediction_offset = pred_int, pseudoResiduals = loss$calculatePseudoResiduals,
-        max_time = self$param_set$values$train_time_total - (proc.time() - time0)[3] / 60)
+      out[["deeper_interactions"]] = distilledRF(task = tsk_new,
+        max_time = self$param_set$values$train_time_total - (proc.time() - time0)[3] / 60
+      )
 
-      out[["deeper_interactions"]] = residual_booster
+      #residual_booster = boostRpart(tsk_new, lr = self$param_set$values$learning_rate_deeper_interactions,
+      # residual_booster = boostRpart(tsk_new, lr = self$param_set$values$learning_rate,
+        # iters = self$param_set$values$iters_deeper_interactions,
+        # patience = stop_args$patience, eps_for_break = stop_args$eps_for_break,
+        # use_es = self$param_set$values$use_early_stopping, idx_train = train_idx,
+        # idx_test = test_idx, logRisk = logRisk, binary_response = bin_response,
+        # prediction_offset = pred_int, pseudoResiduals = loss$calculatePseudoResiduals,
+        # max_time = self$param_set$values$train_time_total - (proc.time() - time0)[3] / 60)
+#
+      # out[["deeper_interactions"]] = residual_booster
       return(out)
     },
 
