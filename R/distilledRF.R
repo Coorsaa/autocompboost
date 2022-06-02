@@ -12,7 +12,7 @@ distilledRF = function(task, max_time) {
   time0 = proc.time()
 
   lrn = as_learner(
-    po("cv_prediction_target", lrn(paste0(task$task_type, ".ranger")), resampling.folds = 5) %>>%
+    po("learner_predictions", lrn(paste0(task$task_type, ".ranger"))) %>>%
       po("fixfactors") %>>%
       lrn(paste0(task$task_type, ".rpart"), minsplit = 1L, minbucket = 1L, cp = 1e-8)
   )
