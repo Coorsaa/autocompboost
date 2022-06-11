@@ -32,7 +32,7 @@ Imports:
     mlrintermbo,
     compboost,
     paradox,
-    miesmuschel,
+    smashy,
     R6,
     ggplot2,
     testthat
@@ -45,11 +45,27 @@ Suggests:
     ranger
 Remotes:
     schalkdaniel/compboost@tensors
-    mlr-org/miesmuschel@smashy_ex
+    mlr-org/paradox@expression_params
+    mlr-org/smashy
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: no
 Roxygen: list(markdown = TRUE, r6 = FALSE)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 VignetteBuilder: knitr
-
+Collate:
+    'AutoCompBoost.R'
+    'AutoCompBoostBase.R'
+    'AutoCompBoostClassif.R'
+    'AutoCompBoostRegr.R'
+    'LearnerClassifCompboost.R'
+    'LearnerRegrCompboost.R'
+    'PipeOpCVPredictionTarget.R'
+    'PipeOpExtractIntercations.R'
+    'boost_rpart.R'
+    'distilledRF.R'
+    'export_rf.R'
+    'helper_plots.R'
+    'param_set.R'
+    'preproc_pipeline.R'
+    'zzz.R'

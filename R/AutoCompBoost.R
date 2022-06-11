@@ -41,7 +41,7 @@
 #' model = AutoCompBoost(tsk("sonar"))
 #' model$train()
 #' }
-AutoCompBoost = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "smashy",
+AutoCompBoost = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "hyperband",
   tuning_time = 60L, tuning_iters = 150L, tuning_generations = 3L, enable_tuning = TRUE, final_model = TRUE) {
   if (task$task_type == "classif") {
     # stratify target variable so that every target lable appears in all folds while resampling

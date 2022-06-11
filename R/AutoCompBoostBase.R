@@ -26,7 +26,7 @@
 #' Contains the performance measure, for which we optimize during training. \cr
 #' Defaults to [Accuracy][mlr3measures::acc] for classification and [RMSE][mlr3measures::rmse] for regression.
 #' @param tuning_method (`character(1)`) \cr
-#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"smash"`¸ Default is `"mbo"`.
+#' Tuning method. Possible choices are `"mbo"`, `"hyperband"` or `"smashy"`¸ Default is `"mbo"`.
 #' @param tuning_time (`integer(1)`) \cr
 #' Termination criterium. Number of seconds for which to run the optimization. Does *not* include training time of the final model. \cr
 #' Default is set to `3600`, i.e. one hour. Tuning is terminated depending on the first termination criteria fulfilled.
@@ -81,7 +81,7 @@
 #' @import mlr3hyperband
 #' @import mlr3learners
 #' @import paradox
-#' @import miesmuschel
+#' @import smashy
 #' @import ggplot2
 #' @import checkmate
 #' @import testthat
@@ -137,7 +137,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       } else if (tuning_method == "hyperband") {
         self$tuner = tnr("hyperband", eta = 1.1)
       } else if (tuning_method == "smashy") {
-        self$tuner = tnr("smashy", fidelity_steps = 3, # FIXME: change after fix in miesmuschel
+        self$tuner = tnr("smashy", fidelity_steps = 3, # FIXME: change after fix in smashy
           ftr("maybe", p = 0.5, filtor = ftr("surprog",
             surrogate_learner = lrn("regr.ranger"),
             filter.pool_factor = 10)),

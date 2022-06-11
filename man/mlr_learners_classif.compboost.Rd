@@ -18,7 +18,7 @@ lrn("classif.compboost")
 }
 
 \examples{
-if (requireNamespace("compboost")) {
+if (requireNamespace("mlr3") && requireNamespace("compboost")) {
   learner = mlr3::lrn("classif.compboost")
   print(learner)
 

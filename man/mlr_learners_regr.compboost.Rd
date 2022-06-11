@@ -18,7 +18,7 @@ lrn("regr.compboost")
 }
 
 \examples{
-if (requireNamespace("compboost")) {
+if (requireNamespace("mlr3") && requireNamespace("compboost")) {
   learner = mlr3::lrn("regr.compboost")
   print(learner)
 

@@ -40,7 +40,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           ParamLgl$new(id = "use_early_stopping", default = TRUE, tags = "train"),
           ParamLgl$new(id = "show_output", default = FALSE, tags = "train"),
           ParamLgl$new(id = "just_univariate", default = FALSE, tags = "train"),
-          ParamLgl$new(id = "add_deeper_interactions", default = FALSE, tags = "train"),
+          ParamLgl$new(id = "add_deeper_interactions", default = TRUE, tags = "train"),
           ParamInt$new(id = "iters_deeper_interactions", default = 500, lower = 0, tags = "train"),
           #ParamDbl$new(id = "learning_rate_deeper_interactions", default = 0.2, lower = 0, upper = 1),
           ParamInt$new(id = "train_time_total", default = 0, lower = 0, tags = "train"),
@@ -59,14 +59,14 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         # Univariate model:
         #learning_rate_univariate = 0.1,
         n_knots_univariate = 15,
-        iters_max_univariate = 50000L,
+        iters_max_univariate = 10000L,
 
         # Interaction model (tensor splines):
         just_univariate = FALSE,
         top_interactions = 0.02,
         #learning_rate_interactions = 0.15,
         n_knots_interactions = 8,
-        iters_max_interactions = 50000L,
+        iters_max_interactions = 10000L,
 
         # Control deeper interactions (trees):
         add_deeper_interactions = TRUE,
@@ -356,6 +356,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         # max_time = self$param_set$values$train_time_total - (proc.time() - time0)[3] / 60)
 #
       # out[["deeper_interactions"]] = residual_booster
+      # browser()
       return(out)
     },
 
@@ -365,13 +366,13 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       lin_pred = self$model$univariate$predict(newdata)
       if (! is.null(self$model$interactions))
         lin_pred = lin_pred + self$model$interactions$predict(newdata)
-
+      # browser()
       if (! is.null(self$model$deeper_interactions)) {
         df_new = task$data()
         df_new$residuals = 0
         tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
-        lin_pred = lin_pred + predict(self$model$deeper_interactions, tsk_new)
-        #lin_pred = lin_pred + self$model$deeper_interactions$lrn$predict(tsk_new)$response
+        lin_pred = lin_pred + predict(self$model$deeper_interactions$trees$model$model$regr.rpart$model, tsk_new$data(cols = tsk_new$feature_names))
+        # lin_pred = lin_pred + self$model$deeper_interactions$trees$model$predict(tsk_new)$response
       }
 
       probs = 1 / (1 + exp(-lin_pred))
@@ -517,8 +518,6 @@ vizBMR(bm)
 
 
 
-q()
-R
 devtools::load_all()
 
 lr_wrf = lrn("classif.compboost", id = "cboost",
