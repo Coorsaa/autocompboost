@@ -6,12 +6,12 @@
 #' Cross-validated predictions are obtained by [mlr3pipelines::PipeOpLearnerCV].
 #' @export
 distilledRF = function(task, max_time) {
+  browser()
   assert_task(task)
   time0 = proc.time()
 
-  # browser()
   lrn = as_learner(
-    po("cv_prediction_target", lrn(paste0(task$task_type, ".ranger")), resampling.folds = 10) %>>%
+    po("learner_predictions", lrn(paste0(task$task_type, ".ranger"))) %>>%
       po("fixfactors") %>>%
       lrn(paste0(task$task_type, ".rpart"), minsplit = 1L, minbucket = 1L, cp = 1e-8)
   )
