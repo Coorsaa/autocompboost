@@ -52,8 +52,8 @@ AutoCompBoostRegr = R6Class(
     #' Creates a new instance of this [R6][R6::R6Class] class.
     #'
     #' @return [AutoCompBoostRegr][autocompboost::AutoCompBoostRegr]
-    initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "smashy",
-      tuning_time = 60L, tuning_iters = 150L, tuning_generations = 3L, enable_tuning = TRUE, final_model = TRUE) {
+    initialize = function(task, resampling, param_values, measure, tuning_method,
+      tuning_time, tuning_iters, tuning_generations, enable_tuning, final_model) {
       checkmate::assert_r6(task, "TaskRegr")
       assert_number(tuning_iters)
       assert_number(tuning_time)

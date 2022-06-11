@@ -18,7 +18,7 @@ register_mlr3pipelines = function() {
   x = utils::getFromNamespace("mlr_pipeops", ns = "mlr3pipelines")
 
   x$add("extract_interactions", PipeOpExtractInteractions)
-  x$add("learner_predictions", PipeOpCVLearnerPredictions)
+  x$add("learner_predictions", PipeOpLearnerPredictions)
 
 }
 

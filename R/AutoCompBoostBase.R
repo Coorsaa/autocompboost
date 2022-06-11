@@ -81,7 +81,6 @@
 #' @import mlr3hyperband
 #' @import mlr3learners
 #' @import paradox
-#' @import smashy
 #' @import ggplot2
 #' @import checkmate
 #' @import testthat
@@ -106,8 +105,8 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Creates a new instance of this [R6][R6::R6Class] class.
     #'
     #' @return [AutoCompBoostBase][autocompboost::AutoCompBoostBase]
-    initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "smashy",
-      tuning_time = 60L, tuning_iters = 150L, tuning_generations = 3L, enable_tuning = TRUE, final_model = TRUE) { # FIXME possibly add: , stratify = TRUE, tune_threshold = TRUE) {
+    initialize = function(task, resampling, param_values, measure, tuning_method,
+      tuning_time, tuning_iters, tuning_generations, enable_tuning, final_model) { # FIXME possibly add: , stratify = TRUE, tune_threshold = TRUE) {
 
       if (!is.null(resampling)) assert_resampling(resampling)
       if (!is.null(measure)) assert_measure(measure)
@@ -119,7 +118,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       self$enable_tuning = assert_logical(enable_tuning)
       self$tuning_time = assert_number(tuning_time, lower = 0)
       self$tuning_iters = assert_number(tuning_iters, lower = 0)
-      check_subset(tuning_method, choices = c("mbo", "hyperband", "smashy"))
+      check_subset(tuning_method, choices = c("mbo", "hyperband"))
       self$tuning_method = assert_character(tuning_method, len = 1)
       if (self$tuning_method == "hyperband") {
         self$tuning_terminator = trm("none")
@@ -136,15 +135,15 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
         self$tuner = tnr("intermbo")
       } else if (tuning_method == "hyperband") {
         self$tuner = tnr("hyperband", eta = 1.1)
-      } else if (tuning_method == "smashy") {
-        self$tuner = tnr("smashy", fidelity_steps = 3, # FIXME: change after fix in smashy
-          ftr("maybe", p = 0.5, filtor = ftr("surprog",
-            surrogate_learner = lrn("regr.ranger"),
-            filter.pool_factor = 10)),
-          mu = 20, survival_fraction = 0.5
-        )
-        self$tuning_terminator = trm("gens", generations = tuning_generations)
-      }
+      }# else if (tuning_method == "smashy") {
+      #   self$tuner = tnr("smashy", fidelity_steps = 3, # FIXME: change after fix in smashy
+      #     ftr("maybe", p = 0.5, filtor = ftr("surprog",
+      #       surrogate_learner = lrn("regr.ranger"),
+      #       filter.pool_factor = 10)),
+      #     mu = 20, survival_fraction = 0.5
+      #   )
+      #   self$tuning_terminator = trm("gens", generations = tuning_generations)
+      # }
       self$learner = private$.create_learner(param_values)
       self$final_model = assert_logical(final_model)
     },

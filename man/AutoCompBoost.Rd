@@ -9,7 +9,7 @@ AutoCompBoost(
   resampling = NULL,
   param_values = NULL,
   measure = NULL,
-  tuning_method = "smashy",
+  tuning_method = "hyperband",
   tuning_time = 60L,
   tuning_iters = 150L,
   tuning_generations = 3L,

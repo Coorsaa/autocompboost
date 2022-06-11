@@ -32,7 +32,6 @@ Imports:
     mlrintermbo,
     compboost,
     paradox,
-    smashy,
     R6,
     ggplot2,
     testthat
@@ -45,8 +44,6 @@ Suggests:
     ranger
 Remotes:
     schalkdaniel/compboost@tensors
-    mlr-org/paradox@expression_params
-    mlr-org/smashy
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: no
@@ -60,8 +57,8 @@ Collate:
     'AutoCompBoostRegr.R'
     'LearnerClassifCompboost.R'
     'LearnerRegrCompboost.R'
-    'PipeOpCVPredictionTarget.R'
     'PipeOpExtractIntercations.R'
+    'PipeOpLearnerPredictions.R'
     'boost_rpart.R'
     'distilledRF.R'
     'export_rf.R'
