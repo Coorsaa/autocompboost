@@ -121,7 +121,7 @@ PipeOpLearnerPredictions = R6Class("PipeOpLearnerPredictions",
       # FIXME: can be changed when mlr-org/mlr3#470 has an answer
       task_type = mlr_reflections$task_types[get("type") == private$.learner$task_type][order(get("package"))][1L]$task
 
-      super$initialize(id, alist(private$.crossval_param_set, private$.learner$param_set), param_vals = param_vals, can_subset_cols = TRUE, task_type = task_type, tags = c("learner", "ensemble"))
+      super$initialize(id, private$.learner$param_set, param_vals = param_vals, can_subset_cols = TRUE, task_type = task_type, tags = c("learner", "ensemble"))
     }
 
   ),
