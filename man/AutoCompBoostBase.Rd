@@ -59,7 +59,7 @@ Name of spline to plot.}
 
 \code{\link[mlr3:ResampleResult]{ResampleResult}}
 
-\code{\link[data.table:data.table]{data.table}}
+\link{data.table}
 
 \code{\link[compboost:Compboost]{Compboost}}
 

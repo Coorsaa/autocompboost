@@ -223,7 +223,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
 
     #' @description
     #' Helper to extract the best hyperparameters from a tuned model.
-    #' @return [`data.table`][data.table::data.table]
+    #' @return [data.table]
     tuned_params = function() {
       if (is.null(self$learner$tuning_instance$archive)) {
         warning("Model has not been trained. Run the $train() method first.")

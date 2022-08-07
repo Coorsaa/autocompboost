@@ -3,7 +3,12 @@
 #' @description
 #' Calls [rpart::rpart()] to train a decision tree on cross-validated predictions of a
 #' random forest using [ranger::ranger()] from package \CRANpkg{ranger}.
-#' Cross-validated predictions are obtained by [mlr3pipelines::PipeOpLearnerCV].
+#' Predictions are obtained by [`PipeOpLearnerPredictions`].
+#'
+#' @param task ([`Task`][mlr3::Task]) \cr
+#' Contains the task to be solved. Currently [`TaskClassif`][mlr3::TaskClassif] and [`TaskRegr`][mlr3::TaskRegr] are supported.
+#' @param max_time (`integer`) \cr
+#' Maximal time in seconds left for training.
 #' @export
 distilledRF = function(task, max_time) {
   assert_task(task)

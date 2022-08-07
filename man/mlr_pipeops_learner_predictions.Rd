@@ -3,36 +3,28 @@
 \name{mlr_pipeops_learner_predictions}
 \alias{mlr_pipeops_learner_predictions}
 \alias{PipeOpLearnerPredictions}
-\title{Wrap a Learner into a PipeOp with Cross-validated Predictions as Features}
+\title{Wrap a Learner into a PipeOp with which returns a task with the predictions as new target.}
 \format{
 \code{\link{R6Class}} object inheriting from \code{\link[mlr3pipelines:PipeOpTaskPreproc]{PipeOpTaskPreproc}}/\code{\link[mlr3pipelines:PipeOp]{PipeOp}}.
 }
 \description{
 Wraps an \code{\link[mlr3:Learner]{mlr3::Learner}} into a \code{\link{PipeOp}}.
 
-Returns cross-validated predictions during training as a \code{\link[mlr3:Task]{Task}} and stores a model of the
-\code{\link[mlr3:Learner]{Learner}} trained on the whole data in \verb{$state}. This is used to create a similar
-\code{\link[mlr3:Task]{Task}} during prediction.
-
-The \code{\link[mlr3:Task]{Task}} gets features depending on the capsuled \code{\link[mlr3:Learner]{Learner}}'s
-\verb{$predict_type}. If the \code{\link[mlr3:Learner]{Learner}}'s \verb{$predict.type} is \code{"response"}, a feature \verb{<ID>.response} is created,
-for \verb{$predict.type} \code{"prob"} the \verb{<ID>.prob.<CLASS>} features are created, and for \verb{$predict.type} \code{"se"} the new columns
-are \verb{<ID>.response} and \verb{<ID>.se}. \verb{<ID>} denotes the \verb{$id} of the \code{\link{PipeOpPredictionLearner}} object.
+Returns a \code{\link[mlr3:Task]{Task}} where the original target is replaced by the response obtained on the training set during training.
 
 Inherits the \verb{$param_set} (and therefore \verb{$param_set$values}) from the \code{\link[mlr3:Learner]{Learner}} it is constructed from.
 
-\code{\link{PipeOpPredictionLearner}} can be used to create "stacking" or "super learning" \code{\link{Graph}}s that use the output of one \code{\link[mlr3:Learner]{Learner}}
-as feature for another \code{\link[mlr3:Learner]{Learner}}. Because the \code{\link{PipeOpPredictionLearner}} erases the original input features, it is often
-useful to use \code{\link{PipeOpFeatureUnion}} to bind the prediction \code{\link[mlr3:Task]{Task}} to the original input \code{\link[mlr3:Task]{Task}}.
+\code{\link{PipeOpLearnerPredictions}} can be used to create "destillation" \code{\link{Graph}}s that use the output of one \code{\link[mlr3:Learner]{Learner}}
+as new target for another \code{\link[mlr3:Learner]{Learner}}.
 }
 \section{Construction}{
-\preformatted{PipeOpPredictionLearner$new(learner, id = NULL, param_vals = list())
+\preformatted{PipeOpLearnerPredictions$new(learner, id = NULL, param_vals = list())
 }
 \itemize{
 \item \code{learner} :: \code{\link[mlr3:Learner]{Learner}} \cr
-\code{\link[mlr3:Learner]{Learner}} to use for cross validation / prediction, or a string identifying a
+\code{\link[mlr3:Learner]{Learner}} to use for training, or a string identifying a
 \code{\link[mlr3:Learner]{Learner}} in the \code{\link[mlr3:mlr_learners]{mlr3::mlr_learners}} \code{\link[mlr3misc:Dictionary]{Dictionary}}.
-This argument is always cloned; to access the \code{\link[mlr3:Learner]{Learner}} inside \code{PipeOpPredictionLearner} by-reference, use \verb{$learner}.\cr
+This argument is always cloned; to access the \code{\link[mlr3:Learner]{Learner}} inside \code{PipeOpLearnerPredictions} by-reference, use \verb{$learner}.\cr
 \item \code{id} :: \code{character(1)}
 Identifier of the resulting object, internally defaulting to the \code{id} of the \code{\link[mlr3:Learner]{Learner}} being wrapped.
 \item \code{param_vals} :: named \code{list}\cr
@@ -42,15 +34,14 @@ List of hyperparameter settings, overwriting the hyperparameter settings that wo
 
 \section{Input and Output Channels}{
 
-\code{\link{PipeOpPredictionLearner}} has one input channel named \code{"input"}, taking a \code{\link[mlr3:Task]{Task}} specific to the \code{\link[mlr3:Learner]{Learner}}
+\code{\link{PipeOpLearnerPredictions}} has one input channel named \code{"input"}, taking a \code{\link[mlr3:Task]{Task}} specific to the \code{\link[mlr3:Learner]{Learner}}
 type given to \code{learner} during construction; both during training and prediction.
 
-\code{\link{PipeOpPredictionLearner}} has one output channel named \code{"output"}, producing a \code{\link[mlr3:Task]{Task}} specific to the \code{\link[mlr3:Learner]{Learner}}
+\code{\link{PipeOpLearnerPredictions}} has one output channel named \code{"output"}, producing a \code{\link[mlr3:Task]{Task}} specific to the \code{\link[mlr3:Learner]{Learner}}
 type given to \code{learner} during construction; both during training and prediction.
 
-The output is a task with the same target as the input task, with features replaced by predictions made by the \code{\link[mlr3:Learner]{Learner}}.
-During training, this prediction is the out-of-sample prediction made by \code{\link[mlr3:resample]{resample}}, during prediction, this is the
-ordinary prediction made on the data by a \code{\link[mlr3:Learner]{Learner}} trained on the training phase data.
+The output is a task with the same features, with the original target replaced by predictions made by the \code{\link[mlr3:Learner]{Learner}}.
+During training, this prediction is the response based on the training set.
 }
 
 \section{State}{
@@ -74,16 +65,6 @@ Prediction time, in seconds.
 \section{Parameters}{
 
 The parameters are the parameters inherited from the \code{\link[mlr3pipelines:PipeOpTaskPreproc]{PipeOpTaskPreproc}}, as well as the parameters of the \code{\link[mlr3:Learner]{Learner}} wrapped by this object.
-Besides that, parameters introduced are:
-\itemize{
-\item \code{resampling.method} :: \code{character(1)}\cr
-Which resampling method do we want to use. Currently only supports \code{"cv"} and \code{"insample"}. \code{"insample"} generates
-predictions with the model trained on all training data.
-\item \code{resampling.folds} :: \code{numeric(1)}\cr
-Number of cross validation folds. Initialized to 3. Only used for \code{resampling.method = "cv"}.
-\item \code{keep_response} :: \code{logical(1)}\cr
-Only effective during \code{"prob"} prediction: Whether to keep response values, if available. Initialized to \code{FALSE}.
-}
 }
 
 \section{Internals}{

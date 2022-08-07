@@ -6,8 +6,15 @@
 \usage{
 distilledRF(task, max_time)
 }
+\arguments{
+\item{task}{(\code{\link[mlr3:Task]{Task}}) \cr
+Contains the task to be solved. Currently \code{\link[mlr3:TaskClassif]{TaskClassif}} and \code{\link[mlr3:TaskRegr]{TaskRegr}} are supported.}
+
+\item{max_time}{(\code{integer}) \cr
+Maximal time in seconds left for training.}
+}
 \description{
 Calls \code{\link[rpart:rpart]{rpart::rpart()}} to train a decision tree on cross-validated predictions of a
 random forest using \code{\link[ranger:ranger]{ranger::ranger()}} from package \CRANpkg{ranger}.
-Cross-validated predictions are obtained by \link[mlr3pipelines:mlr_pipeops_learner_cv]{mlr3pipelines::PipeOpLearnerCV}.
+Predictions are obtained by \code{\link{PipeOpLearnerPredictions}}.
 }
