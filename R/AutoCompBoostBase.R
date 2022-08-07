@@ -250,6 +250,28 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     },
 
     #' @description
+    #' Returns the scores of the `resample_result`.
+    #' @return [`data.table`][data.table::`data.table`]
+    score = function(measure = NULL) {
+      if (is.null(private$.resample_result)) {
+        warning("Model has not been resampled yet. Run the $resample() method first.")
+      } else {
+        return(private$.resample_result$score(measure))
+      }
+    },
+
+    #' @description
+    #' Returns the aggregated score of the `resample_result`.
+    #' @return (`numeric`)
+    aggregate = function(measure = NULL) {
+      if (is.null(private$.resample_result)) {
+        warning("Model has not been resampled yet. Run the $resample() method first.")
+      } else {
+        return(private$.resample_result$aggregate(measure))
+      }
+    },
+
+    #' @description
     #' Returns the risk stages of the final model.
     #' @return (`list`)
     getRiskStages = function(log_entry = "train_risk") {
@@ -544,6 +566,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       graph_learner = as_learner(pipeline)
 
       if (!self$enable_tuning) {
+        graph_learner$id = paste0(self$task$task_type, ".autocompboost")
         return(graph_learner)
       } else {
         # fallback learner is featureless learner for classification / regression

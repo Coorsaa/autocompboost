@@ -58,18 +58,18 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
         # Univariate model:
         #learning_rate_univariate = 0.1,
         n_knots_univariate = 15,
-        iters_max_univariate = 50000L,
+        iters_max_univariate = 10000L,
 
         # Interaction model (tensor splines):
         just_univariate = FALSE,
         top_interactions = 0.02,
         #learning_rate_interactions = 0.15,
         n_knots_interactions = 8,
-        iters_max_interactions = 50000L,
+        iters_max_interactions = 10000L,
 
         # Control deeper interactions (trees):
         add_deeper_interactions = TRUE,
-        iters_deeper_interactions = 500L,
+        # iters_deeper_interactions = 500L,
         #learning_rate_deeper_interactions = 0.15,
 
         # Control early stopping:
@@ -379,7 +379,7 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
         df_new = task$data(cols = task$feature_names)
         df_new$residuals = 0
         tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
-        lin_pred = lin_pred + predict(self$model$deeper_interactions$trees$model, tsk_new$data(cols = tsk_new$feature_names))
+        lin_pred = lin_pred + predict(self$model$deeper_interactions$model, tsk_new$data(cols = tsk_new$feature_names))
         #lin_pred = lin_pred + self$model$deeper_interactions$lrn$predict(tsk_new)$response
       }
 

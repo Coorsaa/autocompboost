@@ -70,7 +70,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
         # Control deeper interactions (trees):
         add_deeper_interactions = TRUE,
-        iters_deeper_interactions = 500L,
+        # iters_deeper_interactions = 500L,
         #learning_rate_deeper_interactions = 0.15,
 
         # Control early stopping:
@@ -371,7 +371,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         df_new = task$data()
         df_new$residuals = 0
         tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
-        lin_pred = lin_pred + predict(self$model$deeper_interactions$trees$model, tsk_new$data(cols = tsk_new$feature_names))
+        lin_pred = lin_pred + predict(self$model$deeper_interactions$model, tsk_new$data(cols = tsk_new$feature_names))
         # lin_pred = lin_pred + self$model$deeper_interactions$trees$model$predict(tsk_new)$response
       }
 
