@@ -92,25 +92,14 @@
 #' @export
 #' @examples
 #' library("mlr3")
+#' library("mlr3pipelines")
 #'
 #' task = tsk("iris")
 #' learner = lrn("classif.rpart")
 #'
 #' lrnpred_po = po("learner_predictions", learner)
-#' lrnpred_po$learner$predict_type = "response"
 #'
-#' nop = mlr_pipeops$get("nop")
-#'
-#' graph = gunion(list(
-#'   lrncv_po,
-#'   nop
-#' )) %>>% po("featureunion")
-#'
-#' graph$train(task)
-#'
-#' graph$pipeops$classif.rpart$learner$predict_type = "prob"
-#'
-#' graph$train(task)
+#' lrnpred_po$train(list(task))
 PipeOpLearnerPredictions = R6Class("PipeOpLearnerPredictions",
   inherit = mlr3pipelines::PipeOpTaskPreproc,
   public = list(
