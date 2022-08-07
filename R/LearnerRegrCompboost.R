@@ -353,31 +353,33 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
       df_new$residuals = pseudo_int
       tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
 
+      out[["deeper_interactions"]] = distilledRF(task = tsk_new,
+        max_time = self$param_set$values$train_time_total - (proc.time() - time0)[3] / 60
+      )
       #residual_booster = boostRpart(tsk_new, lr = self$param_set$values$learning_rate_deeper_interactions,
-      residual_booster = boostRpartRegr(tsk_new, lr = self$param_set$values$learning_rate,
-        iters = self$param_set$values$iters_deeper_interactions,
-        patience = stop_args$patience, eps_for_break = stop_args$eps_for_break,
-        use_es = self$param_set$values$use_early_stopping, idx_train = train_idx,
-        idx_test = test_idx, Risk = squaredRisk, truth = truth,
-        prediction_offset = pred_int, pseudoResiduals = loss$calculatePseudoResiduals,
-        max_time = self$param_set$values$train_time_total - (proc.time() - time0)[3] / 60)
+      # residual_booster = boostRpartRegr(tsk_new, lr = self$param_set$values$learning_rate,
+      #   iters = self$param_set$values$iters_deeper_interactions,
+      #   patience = stop_args$patience, eps_for_break = stop_args$eps_for_break,
+      #   use_es = self$param_set$values$use_early_stopping, idx_train = train_idx,
+      #   idx_test = test_idx, Risk = squaredRisk, truth = truth,
+      #   prediction_offset = pred_int, pseudoResiduals = loss$calculatePseudoResiduals,
+      #   max_time = self$param_set$values$train_time_total - (proc.time() - time0)[3] / 60)
 
-      out[["deeper_interactions"]] = residual_booster
+      # out[["deeper_interactions"]] = residual_booster
       return(out)
     },
 
     .predict = function(task) {
       newdata = task$data(cols = task$feature_names)
-
       lin_pred = self$model$univariate$predict(newdata)
       if (! is.null(self$model$interactions))
         lin_pred = lin_pred + self$model$interactions$predict(newdata)
 
       if (! is.null(self$model$deeper_interactions)) {
-        df_new = task$data()
+        df_new = task$data(cols = task$feature_names)
         df_new$residuals = 0
         tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
-        lin_pred = lin_pred + predict(self$model$deeper_interactions, tsk_new)
+        lin_pred = lin_pred + predict(self$model$deeper_interactions$trees$model, tsk_new$data(cols = tsk_new$feature_names))
         #lin_pred = lin_pred + self$model$deeper_interactions$lrn$predict(tsk_new)$response
       }
 

@@ -371,7 +371,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         df_new = task$data()
         df_new$residuals = 0
         tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
-        lin_pred = lin_pred + predict(self$model$deeper_interactions$trees$model$model$regr.rpart$model, tsk_new$data(cols = tsk_new$feature_names))
+        lin_pred = lin_pred + predict(self$model$deeper_interactions$trees$model, tsk_new$data(cols = tsk_new$feature_names))
         # lin_pred = lin_pred + self$model$deeper_interactions$trees$model$predict(tsk_new)$response
       }
 
