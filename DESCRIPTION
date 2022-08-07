@@ -34,16 +34,16 @@ Imports:
     paradox,
     R6,
     ggplot2,
-    testthat
+    testthat,
+    rpart,
+    ranger
 Suggests:
     knitr,
     lgr,
     patchwork,
-    ggsci,
-    rpart,
-    ranger
+    ggsci
 Remotes:
-    schalkdaniel/compboost@tensors
+    schalkdaniel/compboost
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: no
@@ -59,9 +59,7 @@ Collate:
     'LearnerRegrCompboost.R'
     'PipeOpExtractIntercations.R'
     'PipeOpLearnerPredictions.R'
-    'boost_rpart.R'
     'distilledRF.R'
-    'export_rf.R'
     'helper_plots.R'
     'param_set.R'
     'preproc_pipeline.R'

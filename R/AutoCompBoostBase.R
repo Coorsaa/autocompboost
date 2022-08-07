@@ -73,6 +73,8 @@
 #'
 #' @rawNamespace import(mlr3, except = c(lrn, lrns))
 #' @import compboost
+#' @import rpart
+#' @import ranger
 #' @import mlr3misc
 #' @import mlr3oml
 #' @import mlr3pipelines

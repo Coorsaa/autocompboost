@@ -65,6 +65,10 @@ Name of spline to plot.}
 
 \code{\link[mlr3:ResampleResult]{mlr3}}
 
+\code{\link[data.table:`data.table]{data.table}}
+
+(\code{numeric})
+
 (\code{list})
 
 \code{\link[patchwork:wrap_plots]{patchwork}}
@@ -99,6 +103,10 @@ Helper to extract the best hyperparameters from a tuned model.
 Returns the trained model if \code{final_model} is set to TRUE.
 
 Returns the resample result of method \code{resample()}.
+
+Returns the scores of the \code{resample_result}.
+
+Returns the aggregated score of the \code{resample_result}.
 
 Returns the risk stages of the final model.
 
