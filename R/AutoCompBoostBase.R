@@ -81,7 +81,6 @@
 #' @import mlr3hyperband
 #' @import mlr3learners
 #' @import paradox
-#' @import miesmuschel
 #' @import ggplot2
 #' @import checkmate
 #' @import testthat

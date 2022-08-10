@@ -32,7 +32,6 @@ Imports:
     mlrintermbo,
     compboost,
     paradox,
-    miesmuschel,
     R6,
     ggplot2,
     testthat
@@ -44,8 +43,7 @@ Suggests:
     rpart,
     ranger
 Remotes:
-    schalkdaniel/compboost@tensors
-    mlr-org/miesmuschel@smashy_ex
+    schalkdaniel/compboost
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: no
