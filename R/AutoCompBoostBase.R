@@ -134,7 +134,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
       if (tuning_method == "mbo") {
         self$tuner = tnr("intermbo")
       } else if (tuning_method == "hyperband") {
-        self$tuner = tnr("hyperband", eta = 1.1)
+        self$tuner = tnr("hyperband", eta = 2, repetitions = 3)
       } else if (tuning_method == "smashy") {
         self$tuner = tnr("smashy", fidelity_steps = 3, # FIXME: change after fix in miesmuschel
           ftr("maybe", p = 0.5, filtor = ftr("surprog",
