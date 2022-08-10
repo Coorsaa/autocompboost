@@ -105,7 +105,7 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' Creates a new instance of this [R6][R6::R6Class] class.
     #'
     #' @return [AutoCompBoostBase][autocompboost::AutoCompBoostBase]
-    initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "smashy",
+    initialize = function(task, resampling = NULL, param_values = NULL, measure = NULL, tuning_method = "hyperband",
       tuning_time = 60L, tuning_iters = 150L, tuning_generations = 3L, enable_tuning = TRUE, final_model = TRUE) { # FIXME possibly add: , stratify = TRUE, tune_threshold = TRUE) {
 
       if (!is.null(resampling)) assert_resampling(resampling)
