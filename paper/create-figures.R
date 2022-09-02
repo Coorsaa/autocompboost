@@ -84,13 +84,13 @@ predictTensor = function(dat, dato, coef, tnames, n_knots, degree) {
   x1 = dat[[tnames[1]]]
   x2 = dat[[tnames[2]]]
 
-  knots1 = compboostSplines::createKnots(values = xo1, n_knots = n_knots, degree = degree)
-  basis1 = compboostSplines::createSplineBasis(values = x1, degree = degree, knots = knots1)
+  knots1 = cpsp::createKnots(values = xo1, n_knots = n_knots, degree = degree)
+  basis1 = cpsp::createSplineBasis(values = x1, degree = degree, knots = knots1)
 
-  knots2 = compboostSplines::createKnots(values = xo2, n_knots = n_knots, degree = degree)
-  basis2 = compboostSplines::createSplineBasis(values = x2, degree = degree, knots = knots2)
+  knots2 = cpsp::createKnots(values = xo2, n_knots = n_knots, degree = degree)
+  basis2 = cpsp::createSplineBasis(values = x2, degree = degree, knots = knots2)
 
-  tensor = compboostSplines::rowWiseTensor(basis1, basis2)
+  tensor = cpsp::rowWiseTensor(basis1, basis2)
   return(tensor %*% coef)
 }
 
