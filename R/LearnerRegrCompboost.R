@@ -136,6 +136,7 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
   private = list(
     .train = function(task) {
       time0 = proc.time()
+
       squaredLoss = function(truth, pred) (truth - pred)^2
       squaredRisk = function(truth, pred) mean(squaredLoss(truth, pred))
 
@@ -187,18 +188,32 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
         ### Add base-learner/components (linear + centered spline):
         e = try({
           nuisance = lapply(task$feature_names, function(nm) {
-            if (is.numeric(task$data()[[nm]])) {
+            x = task$data()[[nm]]
+            if (is.numeric(x)) {
+              df0 = self$param_set$values$df
               if (self$param_set$values$use_components) {
-                cboost_uni$addComponents(nm, n_knots = self$param_set$values$n_knots_univariate,
-                  df = self$param_set$values$df, bin_root = bin_root)
+                e = try({
+                  cboost_uni$addComponents(nm, n_knots = self$param_set$values$n_knots_univariate,
+                    df = df0, bin_root = bin_root)
+                }, silent = TRUE)
               } else {
-                cboost_uni$addBaselearner(nm, "spline", BaselearnerPSpline,
-                  n_knots = self$param_set$values$n_knots_univariat,
-                  df = self$param_set$values$df, bin_root = bin_root)
+                e = try({
+                  cboost_uni$addBaselearner(nm, "spline", BaselearnerPSpline,
+                    n_knots = self$param_set$values$n_knots_univariat,
+                    df = df0, bin_root = bin_root)
+                }, silent = TRUE)
               }
             } else {
-              cboost_uni$addBaselearner(nm, "category", BaselearnerCategoricalRidge,
-                df = self$param_set$values$df_cat)
+              df0 = self$param_set$values$df_cat
+              e = try({
+                if (length(unique(x)) < df0) df0 = length(unique(x))
+                cboost_uni$addBaselearner(nm, "category", BaselearnerCategoricalRidge, df = df0)
+              }, silent = TRUE)
+            }
+            if (inherits(e, "try-error")) {
+              stop("Failed to initialize components for feature ", nm, ":\n", attr(e, "condition")$message,
+                "\nThis often happens if too many degrees of freedom are defined please make sure that the",
+                "number of unique values (", length(unique(x)), ") does not exceed the number of df (", df0, ").")
             }
           })
 
@@ -320,6 +335,7 @@ LearnerRegrCompboost = R6Class("LearnerRegrCompboost",
       }
 
       if (length(cboost_int$getBaselearnerNames()) > 0) {
+
         ### Train interaction model:
         if (self$param_set$values$show_output)
           cboost_int$train(self$param_set$values$iters_max_interactions)

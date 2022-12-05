@@ -43,7 +43,7 @@ Suggests:
     rpart,
     ranger
 Remotes:
-    schalkdaniel/compboost
+    schalkdaniel/compboost@dev
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: no
