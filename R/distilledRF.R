@@ -28,7 +28,7 @@ distilledRF = function(task, max_time) {
 
   ttrain = (proc.time() - time0)[3] / 60
   lin[["time_train"]] = ttrain
-  cat("Tree trained in: ", round(ttrain, 2), " Min.", sep = "")
+  cat("Tree trained in: ", round(ttrain, 2), " Min.\n", sep = "")
 
   out = lin
   class(out) = "distilledTree"

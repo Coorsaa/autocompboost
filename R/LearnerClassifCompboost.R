@@ -199,7 +199,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
               }
             } else {
               cboost_uni$addBaselearner(nm, "category", BaselearnerCategoricalRidge,
-                df = self$param_set$values$df_cat)
+                df = min(self$param_set$values$df_cat, nlevels(task$data()[[nm]])))
             }
           })
           ### Train model:
@@ -286,8 +286,13 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       nuisance = lapply(top_interactions, function(i) {
          #Check if numeric! Interactions between ridge and spline needs to be tested first!
         e = try({
-          cboost_int$addTensor(extracted_interactions$feat1[i], extracted_interactions$feat2[i],
-            n_knots = self$param_set$values$n_knots_interactions, df = self$param_set$values$df)
+          cboost_int$addTensor(
+            feature1 = extracted_interactions$feat1[i],
+            feature2 = extracted_interactions$feat2[i],
+            n_knots = self$param_set$values$n_knots_interactions,
+            df1 = self$param_set$values$df,
+            df2 = self$param_set$values$df
+          )
         }, silent = TRUE)
       })
 

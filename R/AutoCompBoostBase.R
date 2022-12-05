@@ -454,18 +454,12 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     plotUnivariateEffects = function(top_n_effects = 3L) {
       private$.check_trained()
       if (is.null(private$.uni_effects_plot)) {
-        coefs = private$.final_model$univariate$getEstimatedCoef()
-        offset = coefs$offset
-        extract = private$.final_model$univariate$extractComponents()
-        pe_numeric = predict(extract, newdata = self$task$data())
-        pe_cat = coefs[grepl("Categorical", vapply(coefs, function(cf) {
-          atr = attr(cf, "blclass")
-          if (is.null(atr))
-            return("Offset")
-          else
-            return(atr)
-        }, character(1L)))]
-
+        feats = self$getFeatureImportance()$univariate$feature
+        uni_effects = lapply(
+          feats[1L:min(length(feats), top_n_effects)], function(f) {
+            plotPEUni(private$.final_model$univariate, feat = f)
+          }
+        )
         private$.uni_effects_plot = patchwork::wrap_plots(uni_effects)
       }
       return(private$.uni_effects_plot)
@@ -474,10 +468,17 @@ AutoCompBoostBase = R6::R6Class("CompBoostBase",
     #' @description
     #' Plot function to plot the interaction effects.
     #' @return [`patchwork`][patchwork::wrap_plots]
-    plotInteractionEffects = function() {
+    plotInteractionEffects = function(top_n_effects = 3L) {
       private$.check_trained()
       if (is.null(private$.int_effects_plot)) {
-        private$.uni_effects_plot = patchwork::wrap_plots(int_effects)
+        feats = private$.final_model$interactions$calculateFeatureImportance()$baselearner
+        int_effects = lapply(
+          feats[1L:min(length(feats), top_n_effects)], function(f) {
+            plotTensor(private$.final_model$interactions, f)
+          }
+        )
+        if(!is.null(int_effects))
+          private$.uni_effects_plot = patchwork::wrap_plots(int_effects)
       }
       return(private$.uni_effects_plot)
     },
