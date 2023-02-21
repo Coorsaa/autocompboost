@@ -1,3 +1,20 @@
+getMinDF = function(fn, dat, df) {
+  checkmate::assertDataFrame(dat)
+  checkmate::assertChoice(fn, colnames(dat))
+  checkmate::assertNumber(df, lower = 1)
+  x = dat[[fn]]
+  if (is.numeric(x))
+    stop("Assertion on x failed, expected character or factor.")
+  ncat = length(unique(x))
+  dfout = df
+  if (df > ncat) {
+    message(sprintf("Number of groups in '%s' is smaller than the degrees of freedom %s. Setting 'df = %s' for feature '%s'.", fn, df, ncat, fn))
+    dfout = ncat
+  }
+  return(dfout)
+}
+
+
 #' @title CompBoost Classification Learner
 #'
 #' @name mlr_learners_classif.compboost
@@ -59,14 +76,14 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         # Univariate model:
         #learning_rate_univariate = 0.1,
         n_knots_univariate = 15,
-        iters_max_univariate = 50000L,
+        iters_max_univariate = 10000L,
 
         # Interaction model (tensor splines):
         just_univariate = FALSE,
         top_interactions = 0.02,
         #learning_rate_interactions = 0.15,
         n_knots_interactions = 8,
-        iters_max_interactions = 50000L,
+        iters_max_interactions = 10000L,
 
         # Control deeper interactions (trees):
         add_deeper_interactions = TRUE,
@@ -139,6 +156,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
     .train = function(task) {
 
       time0 = proc.time()
+
+      # TODO: Use the loss/risk function of the loss object in cboost:
       logLoss = function(truth, pred) log(1 + exp(-2 * truth * pred))
       logRisk = function(truth, pred) mean(logLoss(truth, pred))
 
@@ -148,6 +167,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
       self$param_set$values = mlr3misc::insert_named(pdefaults, pars)
 
+      #
       if (task$nrow >= self$param_set$values$n_threshold_binning)
         bin_roots = c(seq(2, 1, length.out = 4)[-4], 0)
       else
@@ -165,18 +185,20 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
 
       train_idx = setdiff(seq_len(task$nrow), test_idx)
 
+      ## It can happen that too aggressive binning reduces the data size so much that
+      ## the maths fails, we try to catch that by lowering the bin_root depending
+      ## on an error that may occur or not.
       for (bin_root in bin_roots) {
 
         optimizer = OptimizerCoordinateDescent$new(self$param_set$values$ncores)
 
         ### Define compboost model for univariate features:
         loss = compboost::LossBinomial$new()
-
         cboost_uni = Compboost$new(data = task$data(), target = task$target_names,
           loss = loss, learning_rate = self$param_set$values$learning_rate,
           #loss = loss, learning_rate = self$param_set$values$learning_rate_univariate,
-          optimizer = optimizer, test_idx = test_idx, stop_args = stop_args,
-          use_early_stopping = self$param_set$values$use_early_stopping
+          optimizer = optimizer, idx_oob = test_idx, stop_args = stop_args,
+          early_stop = self$param_set$values$use_early_stopping
         )
 
         ### If a maximum time is given, the logger is used for stopping. Otherwise the time is just logged:
@@ -185,23 +207,36 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         else
           cboost_uni$addLogger(LoggerTime, FALSE, "minutes", 0, "minutes")
 
-        ### Add base-learner/components (linear + centered spline):
+        # Try to train a model, if this fails, try with a smaller binning root:
         e = try({
           nuisance = lapply(task$feature_names, function(nm) {
-            if (is.numeric(task$data()[[nm]])) {
-              if (self$param_set$values$use_components) {
-                cboost_uni$addComponents(nm, n_knots = self$param_set$values$n_knots_univariat,
-                  df = self$param_set$values$df, bin_root = bin_root)
+            einternal = try({
+              ### Add base-learner/components (linear + centered spline):
+              if (is.numeric(task$data()[[nm]])) {
+                if (self$param_set$values$use_components) {
+                  cboost_uni$addComponents(nm, n_knots = self$param_set$values$n_knots_univariat,
+                    df = self$param_set$values$df, bin_root = bin_root)
+                } else {
+                  cboost_uni$addBaselearner(nm, "spline", BaselearnerPSpline,
+                    n_knots = self$param_set$values$n_knots_univariat,
+                    df = self$param_set$values$df, bin_root = bin_root)
+                }
               } else {
-                cboost_uni$addBaselearner(nm, "spline", BaselearnerPSpline,
-                  n_knots = self$param_set$values$n_knots_univariat,
-                  df = self$param_set$values$df, bin_root = bin_root)
+                dfcat = getMinDF(nm, cboost_uni$data, self$param_set$values$df_cat)
+                #dfcat = self$param_set$values$df_cat
+                #ncat = length(unique(cboost_uni$data[[nm]]))
+                #if (dfcat > ncat) {
+                  #message(sprintf("Number of groups in '%s' is smaller than the degrees of freedom %s. Setting 'df = %s' for feature '%s'.", nm, dfcat, ncat, nm))
+                  #dfcat = ncat
+                #}
+                cboost_uni$addBaselearner(nm, "category", BaselearnerCategoricalRidge, df = dfcat)
               }
-            } else {
-              cboost_uni$addBaselearner(nm, "category", BaselearnerCategoricalRidge,
-                df = self$param_set$values$df_cat)
+            }, silent = TRUE)
+            if (inherits(einternal, "try-error")) {
+              stop(sprintf("Error while processing feature '%s': %s", nm, attr(einternal, "condition")$message))
             }
           })
+
           ### Train model:
           if (self$param_set$values$show_output)
             cboost_uni$train(self$param_set$values$iters_max_univariate)
@@ -209,7 +244,8 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
             nuisance = capture.output(cboost_uni$train(self$param_set$values$iters_max_univariate))
         }, silent = TRUE)
 
-        if (class(e) == "try-error") {
+        if (inherits(e, "try-error")) {
+          ecatch = FALSE
           if (grepl("chol()", attr(e, "condition")) && (bin_root > 0)) {
             i = which(bin_root == bin_roots)
             msg = paste0("Trying to catch Cholesky decomposition error.",
@@ -221,7 +257,22 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
               msg = paste0(msg, ". Now trying with a smaller root of ", round(bin_roots[i+1]), ".")
             }
             warning(msg)
-          } else {
+            ecatch = TRUE
+          }
+          if (grepl("toms748", attr(e, "condition")) && (bin_root > 0)) {
+            i = which(bin_root == bin_roots)
+            msg = sprintf("Trying to catch optimization error with toms748.
+              This may appear due to too aggressive binning with a root of %s",
+              round(bin_root, 2))
+            if (i == (length(bin_roots) - 1)) {
+              msg = paste0(msg, ". Trying to fit model without binning.")
+            } else {
+              msg = paste0(msg, ". Now trying with a smaller root of ", round(bin_roots[i+1]), ".")
+            }
+            stop(sprintf("%s: This most likely occurred because of degrees of freedom bigger than the number of groups or unique values in a numerical features.", attr(e, "condition")$message))
+            ecatch = TRUE
+          }
+          if (! ecatch) {
             stop(e)
           }
         } else {
@@ -279,15 +330,26 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       cboost_int = Compboost$new(data = task$data(), target = task$target_names, loss = loss_int_inbag,
         #learning_rate = self$param_set$values$learning_rate_interactions, optimizer = optimizer_int,
         learning_rate = self$param_set$values$learning_rate, optimizer = optimizer_int,
-        test_idx = test_idx, stop_args = c(stop_args, loss_oob = loss_int_oob),
-        use_early_stopping = self$param_set$values$use_early_stopping)
+        idx_oob = test_idx, stop_args = c(stop_args, loss_oob = loss_int_oob),
+        early_stop = self$param_set$values$use_early_stopping)
 
-      ### Add tensor splines. (FIXME: Atm just for numeric-numeric interactions):
       nuisance = lapply(top_interactions, function(i) {
-         #Check if numeric! Interactions between ridge and spline needs to be tested first!
         e = try({
-          cboost_int$addTensor(extracted_interactions$feat1[i], extracted_interactions$feat2[i],
-            n_knots = self$param_set$values$n_knots_interactions, df = self$param_set$values$df)
+          f1 = extracted_interactions$feat1[i]
+          f2 = extracted_interactions$feat2[i]
+
+          df1 = df2 = self$param_set$values$df
+          df_cat1 = df_cat2 = self$param_set$values$df_cat
+
+          if (! is.numeric(cboost_int$data[[f1]])) {
+            df1 = getMinDF(f1, cboost_int$data, df_cat1)
+          }
+          if (! is.numeric(cboost_int$data[[f1]])) {
+            df2 = getMinDF(f2, cboost_int$data, df_cat2)
+          }
+
+          cboost_int$addTensor(feature1 = f1, feature2 = f2,
+            df1 = df1, df2 = df2, isotrop = TRUE)
         }, silent = TRUE)
       })
 

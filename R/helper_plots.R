@@ -6,6 +6,95 @@ g_legend = function(a.gplot){
   legend <- tmp$grobs[[leg]]
   return(legend)}
 
+plotIndividualContributionAC = function(cboost, newdata) {
+
+  checkmate::assertR6(cboost, "Learner")
+  checkmate::assertR6(cboost$model$univariate, "Compboost")
+  if (! checkmate::testR6(cboost$model$interactions, "Compboost")) {
+    warning("No interaction model detected, falling back to `plotIndividualContribution(cboost$model$univariate, newdata)`.")
+    return(plotIndividualContribution(cboost$model$univariate, newdata, offset = FALSE))
+  }
+  checkmate::assertDataFrame(newdata, nrows = 1)
+
+  p_uni = cboost$model$univariate$predictIndividual(newdata)
+  p_int = cboost$model$interactions$predictIndividual(newdata)
+  p_int$offset = NULL
+
+  df_new = newdata
+  df_new$residuals = 0
+  tsk_new = TaskRegr$new(id = "residuals", backend = df_new, target = "residuals")
+  p_trees = predict.residualBooster(cboost$model$deeper_interactions, tsk_new)
+
+  p = c(p_uni, p_int, other = p_trees)
+
+  df_plt = data.frame(blearner = names(p), value = unlist(p),
+    stage = rep(c("Univariate", "Pairwise interactions", "Deep trees"), times = c(length(p_uni), length(p_int), 1)))
+
+  df_plt$blearner = factor(df_plt$blearner, levels = rev(df_plt$blearner))
+  df_plt$stage = factor(df_plt$stage, levels = c("Univariate", "Pairwise interactions", "Deep trees"))
+  df_plt$bl_num = rev(seq_along(df_plt$blearner))
+
+  fnames = c("offset", "other", task$feature_names)
+  fidx = t(do.call(rbind, lapply(fnames, function(feat) grepl(feat, df_plt$blearner))))
+
+  flab = character(nrow(fidx))
+  for (i in seq_len(nrow(fidx))) {
+    feats = fnames[fidx[i, ]]
+
+    if (length(feats) > 1) {
+      df_char = data.frame(f = feats, n = nchar(feats))
+      df_char = df_char[order(df_char$n, decreasing = TRUE), ]
+      df_char$count = sapply(df_char$f, function(fn) sum(grepl(fn, df_char$f)))
+      feats = df_char$f[df_char$count == 1]
+    }
+    feats = vapply(feats, function(f) {
+      if (f %in% c("other", "offset")) return(f)
+
+      fval = newdata[[f]]
+      if (is.numeric(fval))
+        return(paste0(f, " (", round(fval, 2), ")"))
+      else
+        return(paste0(f, " (", fval, ")"))
+    }, character(1L))
+
+    if (length(feats) == 2)
+      flab[i] = paste0("Interaction: ", paste(feats, collapse = ", "))
+    else
+      flab[i] = feats
+  }
+  flab[flab == "other"] = "Deep trees"
+  df_plt$feat = flab
+  df_plt0 = df_plt %>%
+    group_by(feat) %>%
+    summarize(value = sum(value), stage = stage[1]) %>%
+    ungroup() %>%
+    arrange(desc(stage)) %>%
+    mutate(bl_num = seq_along(value))
+
+  pred = sum(df_plt0$value)
+  prob = 1 / (1 + exp(-pred))
+  plabel = ifelse(prob > 0.5, task$positive, task$negative)
+
+  title = "Prediction"
+  subtitle = paste0("Score: ", round(pred, 2), " Probability: ", round(prob, 2), " Predicted label: ", plabel)
+
+  ggplot(df_plt0, aes(x = value, y = bl_num, color = stage, fill = stage)) +
+    geom_vline(xintercept = 0, color = "dark grey", alpha = 0.6) +
+    geom_segment(aes(xend = 0, yend = bl_num)) +
+    geom_point() +
+    ylab("") +
+    xlab("Contribution to predicted value") +
+    labs(color = "", fill = "") +
+    ggsci::scale_fill_uchicago() +
+    ggsci::scale_color_uchicago() +
+    #scale_y_reverse() +
+    scale_y_continuous(labels = df_plt0$feat, breaks = df_plt0$bl_num) +
+    theme_minimal() +
+    ggtitle(title, subtitle)
+}
+
+
+
 ### Need to put this directly in compboost:
 predict.compboostExtract = function(object, newdata) {
   feats = names(object)
