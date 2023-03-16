@@ -1,6 +1,6 @@
 boostRpart = function(task, lr, iters, patience, eps_for_break, use_es,
   idx_train, idx_test, logRisk, binary_response, prediction_offset,
-  pseudoResiduals, max_time, ...) {
+  pseudoResiduals, max_time, trace = TRUE, ...) {
 
   time0 = proc.time()
 
@@ -69,8 +69,12 @@ boostRpart = function(task, lr, iters, patience, eps_for_break, use_es,
       cbind(pred_old)))
     train_risk_old = ll_trees[[i]][["train_risk"]]
     test_risk_old = ll_trees[[i]][["test_risk"]]
-    cat("Tree ", i, ": train risk: ", round(train_risk_old, 4), " test risk: ",
-      round(test_risk_old, 4), " time: ", round(ttrain, 2), " Min. patience: ", k_stop, "\n", sep = "")
+    if (trace) {
+      message(sprintf("Tree %s: train risk: %s test risk: %s time: %s Min. patience: %s",
+        i, round(train_risk_old, 4), round(test_risk_old, 4), round(ttrain, 2), k_stop))
+      #cat("Tree ", i, ": train risk: ", round(train_risk_old, 4), " test risk: ",
+        #round(test_risk_old, 4), " time: ", round(ttrain, 2), " Min. patience: ", k_stop, "\n", sep = "")
+    }
   }
   if (es_was_hit) {
     ll_trees[i:(i - patience)] = NULL
