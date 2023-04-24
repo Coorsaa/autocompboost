@@ -48,7 +48,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
           ParamDbl$new(id = "n_knots_univariate", default = 20L, lower = 4, tags = "train"),
           ParamDbl$new(id = "n_knots_interactions", default = 10L, lower = 4, tags = "train"),
           ParamLgl$new(id = "use_components", default = TRUE, tags = "train"),
-          ParamInt$new(id = "ncores", default = 1L, lower = 1L, upper = parallel::detectCores() - 1L, tags = c("train", "test")),
+          ParamInt$new(id = "ncores", default = 1L, lower = 1L, upper = parallel::detectCores() - 1L, tags = "train"),
           ParamDbl$new(id = "stop_epsylon_for_break", default = 0.00001, lower = 0, upper = 1, tags = "train"),
           ParamDbl$new(id = "stop_patience", default = 10L, lower = 1L, tags = "train"),
           ParamDbl$new(id = "val_fraction", default = 0.33, lower = 0, upper = 1, tags = "train"),
@@ -164,10 +164,11 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       ### Set params with default and user defined ones:
       pdefaults = self$param_set$default
       pars      = self$param_set$values
-
       self$param_set$values = mlr3misc::insert_named(pdefaults, pars)
 
-      #
+      ### Binning is applied if the task has more observations than `n_threshold_binning`.
+      ### Autocompboost then tries 4 values from 2 to 1 since binning sometimes fails
+      ### due to an too aggressive data reduction:
       if (task$nrow >= self$param_set$values$n_threshold_binning)
         bin_roots = c(seq(2, 1, length.out = 4)[-4], 0)
       else
@@ -178,8 +179,9 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
       stop_args = list(eps_for_break = self$param_set$values$stop_epsylon_for_break,
         patience = self$param_set$values$stop_patience)
 
+      ntest = trunc(task$nrow * self$param_set$values$val_fraction)
       if (self$param_set$values$use_early_stopping)
-        test_idx  = as.integer(sample(seq_len(task$nrow), trunc(task$nrow * self$param_set$values$val_fraction)))
+        test_idx  = sample(seq_len(task$nrow), ntest)
       else
         test_idx = NULL
 
@@ -196,7 +198,6 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         loss = compboost::LossBinomial$new()
         cboost_uni = Compboost$new(data = task$data(), target = task$target_names,
           loss = loss, learning_rate = self$param_set$values$learning_rate,
-          #loss = loss, learning_rate = self$param_set$values$learning_rate_univariate,
           optimizer = optimizer, idx_oob = test_idx, stop_args = stop_args,
           early_stop = self$param_set$values$use_early_stopping
         )
@@ -207,7 +208,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         else
           cboost_uni$addLogger(LoggerTime, FALSE, "minutes", 0, "minutes")
 
-        # Try to train a model, if this fails, try with a smaller binning root:
+        ### Try to train a model, if this fails, try with a smaller binning root:
         e = try({
           nuisance = lapply(task$feature_names, function(nm) {
             einternal = try({
@@ -223,12 +224,6 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
                 }
               } else {
                 dfcat = getMinDF(nm, cboost_uni$data, self$param_set$values$df_cat)
-                #dfcat = self$param_set$values$df_cat
-                #ncat = length(unique(cboost_uni$data[[nm]]))
-                #if (dfcat > ncat) {
-                  #message(sprintf("Number of groups in '%s' is smaller than the degrees of freedom %s. Setting 'df = %s' for feature '%s'.", nm, dfcat, ncat, nm))
-                  #dfcat = ncat
-                #}
                 cboost_uni$addBaselearner(nm, "category", BaselearnerCategoricalRidge, df = dfcat)
               }
             }, silent = TRUE)
@@ -245,36 +240,7 @@ LearnerClassifCompboost = R6Class("LearnerClassifCompboost",
         }, silent = TRUE)
 
         if (inherits(e, "try-error")) {
-          ecatch = FALSE
-          if (grepl("chol()", attr(e, "condition")) && (bin_root > 0)) {
-            i = which(bin_root == bin_roots)
-            msg = paste0("Trying to catch Cholesky decomposition error.",
-              "This may appear due to too aggressive binning with a root of ",
-              round(bin_root, 2))
-            if (i == (length(bin_roots) - 1)) {
-              msg = paste0(msg, ". Trying to fit model without binning.")
-            } else {
-              msg = paste0(msg, ". Now trying with a smaller root of ", round(bin_roots[i+1]), ".")
-            }
-            warning(msg)
-            ecatch = TRUE
-          }
-          if (grepl("toms748", attr(e, "condition")) && (bin_root > 0)) {
-            i = which(bin_root == bin_roots)
-            msg = sprintf("Trying to catch optimization error with toms748.
-              This may appear due to too aggressive binning with a root of %s",
-              round(bin_root, 2))
-            if (i == (length(bin_roots) - 1)) {
-              msg = paste0(msg, ". Trying to fit model without binning.")
-            } else {
-              msg = paste0(msg, ". Now trying with a smaller root of ", round(bin_roots[i+1]), ".")
-            }
-            stop(sprintf("%s: This most likely occurred because of degrees of freedom bigger than the number of groups or unique values in a numerical features.", attr(e, "condition")$message))
-            ecatch = TRUE
-          }
-          if (! ecatch) {
-            stop(e)
-          }
+          eHandler(e, bin_root, bin_roots)
         } else {
           break
         }
